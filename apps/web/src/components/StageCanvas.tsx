@@ -122,7 +122,12 @@ export function StageCanvas(): ReactElement {
           {Array.from({ length: Math.floor(stageWidth) + 1 }, (_, i) => (
             <Line
               key={`v${i}`}
-              points={[offsetX + i * pxPerMeter, offsetY, offsetX + i * pxPerMeter, offsetY + floorH]}
+              points={[
+                offsetX + i * pxPerMeter,
+                offsetY,
+                offsetX + i * pxPerMeter,
+                offsetY + floorH,
+              ]}
               stroke="#ffffff"
               opacity={0.045}
               strokeWidth={1}
@@ -131,7 +136,12 @@ export function StageCanvas(): ReactElement {
           {Array.from({ length: Math.floor(stageHeight) + 1 }, (_, i) => (
             <Line
               key={`h${i}`}
-              points={[offsetX, offsetY + i * pxPerMeter, offsetX + floorW, offsetY + i * pxPerMeter]}
+              points={[
+                offsetX,
+                offsetY + i * pxPerMeter,
+                offsetX + floorW,
+                offsetY + i * pxPerMeter,
+              ]}
               stroke="#ffffff"
               opacity={0.045}
               strokeWidth={1}
@@ -232,8 +242,18 @@ export function StageCanvas(): ReactElement {
                   />
                 )}
                 {/* Spike-tape cross in the performer's color. */}
-                <Line points={[-arm, -arm, arm, arm]} stroke={p.color} strokeWidth={3} lineCap="round" />
-                <Line points={[-arm, arm, arm, -arm]} stroke={p.color} strokeWidth={3} lineCap="round" />
+                <Line
+                  points={[-arm, -arm, arm, arm]}
+                  stroke={p.color}
+                  strokeWidth={3}
+                  lineCap="round"
+                />
+                <Line
+                  points={[-arm, arm, arm, -arm]}
+                  stroke={p.color}
+                  strokeWidth={3}
+                  lineCap="round"
+                />
                 {/* Invisible hit area so small crosses stay grabbable. */}
                 <Circle radius={HIT_RADIUS_M * pxPerMeter} fill="transparent" />
                 <Text

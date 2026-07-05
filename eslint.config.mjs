@@ -23,4 +23,16 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
     },
   },
+  {
+    // Plain Node scripts (migration runner etc.)
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
 );

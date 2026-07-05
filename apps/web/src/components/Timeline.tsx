@@ -14,7 +14,11 @@ interface TimelineProps {
   onClearAudio: () => void;
 }
 
-export function Timeline({ audioVersion, onUploadAudio, onClearAudio }: TimelineProps): ReactElement {
+export function Timeline({
+  audioVersion,
+  onUploadAudio,
+  onClearAudio,
+}: TimelineProps): ReactElement {
   const formations = useEditor((s) => s.formations);
   const beatMarkersMs = useEditor((s) => s.performance.beatMarkersMs);
   const bpm = useEditor((s) => s.performance.bpm);

@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Formation } from '@openstage/shared-types';
 import type { PositionMap } from './store';
-import {
-  formatEightCount,
-  formatTimecode,
-  lerpAngle,
-  posesAtTime,
-  showEndMs,
-} from './interpolate';
+import { formatEightCount, formatTimecode, lerpAngle, posesAtTime, showEndMs } from './interpolate';
 
 function formation(partial: Partial<Formation> & Pick<Formation, 'id' | 'orderIndex'>): Formation {
   return {

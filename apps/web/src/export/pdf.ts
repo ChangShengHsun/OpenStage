@@ -164,6 +164,9 @@ function drawRosterPage(doc: jsPDF, title: string): void {
 }
 
 function safeFilename(title: string): string {
-  const cleaned = title.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+  const cleaned = title
+    .trim()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '');
   return cleaned === '' ? 'openstage' : cleaned.toLowerCase();
 }

@@ -137,8 +137,7 @@ export const useEditor = create<EditorState>()(
         playheadMs: 0,
         isPlaying: false,
 
-        setTitle: (title) =>
-          mutateDoc((s) => ({ performance: { ...s.performance, title } })),
+        setTitle: (title) => mutateDoc((s) => ({ performance: { ...s.performance, title } })),
 
         setStageSize: (width, height) =>
           mutateDoc((s) => {

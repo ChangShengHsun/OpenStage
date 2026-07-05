@@ -168,7 +168,8 @@ function FormationSection(): ReactElement | null {
               value={Number((formation.startTimeMs / 1000).toFixed(1))}
               onChange={(e) => {
                 const v = num(e.target.value);
-                if (v !== null) updateFormation(formation.id, { startTimeMs: Math.max(0, v * 1000) });
+                if (v !== null)
+                  updateFormation(formation.id, { startTimeMs: Math.max(0, v * 1000) });
               }}
             />
           </div>
@@ -182,7 +183,8 @@ function FormationSection(): ReactElement | null {
               value={Number((formation.durationMs / 1000).toFixed(1))}
               onChange={(e) => {
                 const v = num(e.target.value);
-                if (v !== null) updateFormation(formation.id, { durationMs: Math.max(0, v * 1000) });
+                if (v !== null)
+                  updateFormation(formation.id, { durationMs: Math.max(0, v * 1000) });
               }}
             />
           </div>

@@ -1,0 +1,14 @@
+{
+  "name": "@openstage/collab-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenStage realtime collaboration server (Yjs over websockets)",
+  "license": "MIT",
+  "scripts": {
+    "start": "y-websocket"
+  },
+  "dependencies": {
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.0"
+  }
+}
