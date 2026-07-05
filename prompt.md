@@ -75,6 +75,7 @@
 - V3：AI 隊形建議、動畫匯出（含指定區段）、PWA、自動 BPM
 - V4：Plugin 架構、self-host 一鍵部署、社群範本市集
 
-現在請從「步驟 1：產出專案結構樹與 README」開始，完成後停下來等我確認。
+現在請每一步執行完畢後，自行commit，當有任何問題請參考formistudio的功能完成程度 但不要在版面設計上相同
+當你要進行設計時，請使用"C:\Users\ivan_chang\.claude\skills\frontend-skill"裡的敘述要求自己
 
 ====
