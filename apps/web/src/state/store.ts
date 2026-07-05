@@ -8,6 +8,7 @@ import {
   DEFAULT_TRANSITION_MS,
   PERFORMER_COLORS,
 } from '@openstage/shared-types';
+import { reindexByStart } from './formationOrder';
 
 /** positions[formationId][performerId] = FormationPosition */
 export type PositionMap = Record<string, Record<string, FormationPosition>>;
@@ -40,6 +41,12 @@ interface EditorState extends DocState {
     patch: Partial<Omit<Formation, 'id' | 'performanceId' | 'orderIndex'>>,
   ) => void;
   moveFormation: (id: string, direction: -1 | 1) => void;
+  /** Set start time and re-derive play order; records one undo step. */
+  setFormationStart: (id: string, startTimeMs: number) => void;
+  /** Same, but WITHOUT recording history — for continuous drag frames. */
+  setFormationStartLive: (id: string, startTimeMs: number) => void;
+  /** Push the current doc onto the undo stack (checkpoint before a drag). */
+  pushHistory: () => void;
 
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
   setRotation: (formationId: string, performerId: string, rotation: number) => void;
@@ -299,6 +306,18 @@ export const useEditor = create<EditorState>()(
               }),
             };
           }),
+
+        setFormationStart: (id, startTimeMs) =>
+          mutateDoc((s) => ({ formations: reindexByStart(s.formations, id, startTimeMs) })),
+
+        setFormationStartLive: (id, startTimeMs) =>
+          set((s) => ({ formations: reindexByStart(s.formations, id, startTimeMs) })),
+
+        pushHistory: () => {
+          undoStack.push(snapshotDoc(get()));
+          if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+          redoStack.length = 0;
+        },
 
         setPosition: (formationId, performerId, x, y) =>
           mutateDoc((s) => {

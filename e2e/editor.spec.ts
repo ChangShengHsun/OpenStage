@@ -6,7 +6,7 @@ interface PersistedDoc {
   state: {
     performance: { beatMarkersMs: number[]; bpm: number | null };
     performers: { id: string; name: string }[];
-    formations: { id: string; orderIndex: number }[];
+    formations: { id: string; orderIndex: number; startTimeMs: number }[];
     positions: Record<string, Record<string, { x: number; y: number; rotation: number }>>;
   };
 }
@@ -148,6 +148,46 @@ test('audio upload, beat markers, waveform persistence', async ({ page }) => {
 
   await page.reload();
   await expect(page.getByText('Replace audio')).toBeVisible();
+});
+
+test('drag a formation to reposition it in time; undo reverts in one step', async ({ page }) => {
+  await page.getByText('Add formation').click(); // now 2 formations: 0s and 12s
+
+  const content = page.locator('.timeline-content');
+  const box = await content.boundingBox();
+  if (box === null) throw new Error('no timeline content box');
+  const totalMs = 30_000; // 2 formations end at 20s, clamped up to MIN 30s
+  const px = (ms: number): number => box.x + (ms / totalMs) * box.width;
+  const rowY = box.y + box.height - 8 - 22;
+
+  let formations = (await readDoc(page)).formations;
+  const f2 = formations.find((f) => f.orderIndex === 1);
+  if (f2 === undefined) throw new Error('no second formation');
+
+  await page.mouse.move(px(12500), rowY);
+  await page.mouse.down();
+  await page.mouse.move(px(6000), rowY, { steps: 12 });
+  await page.mouse.up();
+
+  formations = (await readDoc(page)).formations;
+  const moved = formations.find((f) => f.id === f2.id);
+  expect(moved).toBeDefined();
+  // Was 12000ms, dragged toward 5.5s.
+  expect(moved?.startTimeMs ?? 0).toBeLessThan(9000);
+  expect(moved?.startTimeMs ?? 0).toBeGreaterThan(2000);
+
+  await page.locator('.timeline-content').focus();
+  await page.keyboard.press('Control+z');
+  formations = (await readDoc(page)).formations;
+  expect(formations.find((f) => f.id === f2.id)?.startTimeMs).toBe(12000);
+});
+
+test('zoom widens the timeline content', async ({ page }) => {
+  const before = (await page.locator('.timeline-content').boundingBox())?.width ?? 0;
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  const after = (await page.locator('.timeline-content').boundingBox())?.width ?? 0;
+  expect(after).toBeGreaterThan(before * 1.8);
 });
 
 test('PDF export downloads a file', async ({ page }) => {

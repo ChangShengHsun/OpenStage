@@ -138,6 +138,7 @@ function FormationSection(): ReactElement | null {
   const formations = useEditor((s) => s.formations);
   const selectedFormationId = useEditor((s) => s.selectedFormationId);
   const updateFormation = useEditor((s) => s.updateFormation);
+  const setFormationStart = useEditor((s) => s.setFormationStart);
   const removeFormation = useEditor((s) => s.removeFormation);
   const moveFormation = useEditor((s) => s.moveFormation);
 
@@ -168,8 +169,7 @@ function FormationSection(): ReactElement | null {
               value={Number((formation.startTimeMs / 1000).toFixed(1))}
               onChange={(e) => {
                 const v = num(e.target.value);
-                if (v !== null)
-                  updateFormation(formation.id, { startTimeMs: Math.max(0, v * 1000) });
+                if (v !== null) setFormationStart(formation.id, v * 1000);
               }}
             />
           </div>
