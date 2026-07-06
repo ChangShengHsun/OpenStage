@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Formation, FormationPosition, Performance, Performer } from '@openstage/shared-types';
+import type {
+  DocComment,
+  Formation,
+  FormationPosition,
+  Performance,
+  Performer,
+} from '@openstage/shared-types';
 import {
   DEFAULT_FORMATION_DURATION_MS,
   DEFAULT_STAGE_HEIGHT_M,
@@ -9,6 +15,9 @@ import {
   PERFORMER_COLORS,
 } from '@openstage/shared-types';
 import { reindexByStart } from './formationOrder';
+import { templateSpots } from './templates';
+import type { TemplateKind } from './templates';
+import type { RosterRow } from './csv';
 
 /** positions[formationId][performerId] = FormationPosition */
 export type PositionMap = Record<string, Record<string, FormationPosition>>;
@@ -18,6 +27,7 @@ interface DocState {
   performers: Performer[];
   formations: Formation[];
   positions: PositionMap;
+  comments: DocComment[];
 }
 
 interface EditorState extends DocState {
@@ -31,6 +41,7 @@ interface EditorState extends DocState {
   setBpm: (bpm: number | null) => void;
 
   addPerformer: () => void;
+  importRoster: (rows: readonly RosterRow[]) => void;
   removePerformer: (id: string) => void;
   updatePerformer: (id: string, patch: Partial<Omit<Performer, 'id' | 'performanceId'>>) => void;
 
@@ -47,6 +58,8 @@ interface EditorState extends DocState {
   setFormationStartLive: (id: string, startTimeMs: number) => void;
   /** Push the current doc onto the undo stack (checkpoint before a drag). */
   pushHistory: () => void;
+  /** Arrange the selected formation's performers into a template shape. */
+  applyTemplate: (kind: TemplateKind) => void;
 
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
   setRotation: (formationId: string, performerId: string, rotation: number) => void;
@@ -59,6 +72,9 @@ interface EditorState extends DocState {
 
   addBeatMarker: (ms: number) => void;
   removeBeatMarker: (ms: number) => void;
+
+  addComment: (text: string, performerId: string | null, authorName: string) => void;
+  removeComment: (id: string) => void;
 
   setPlayhead: (ms: number) => void;
   setIsPlaying: (playing: boolean) => void;
@@ -98,11 +114,27 @@ function createInitialDoc(): DocState {
       },
     ],
     positions: { [formationId]: {} },
+    comments: [],
   };
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/** Default spot for the index-th cast member: rows across downstage. */
+function defaultSpot(
+  index: number,
+  stageWidth: number,
+  stageHeight: number,
+): { x: number; y: number } {
+  const usable = Math.max(stageWidth - 3, 1);
+  const step = 1.5;
+  const perRow = Math.max(Math.floor(usable / step), 1);
+  return {
+    x: clamp(1.5 + (index % perRow) * step, 0, stageWidth),
+    y: clamp(stageHeight - 1.5 - Math.floor(index / perRow) * step, 0, stageHeight),
+  };
 }
 
 function snapshotDoc(s: DocState): DocState {
@@ -116,6 +148,7 @@ function snapshotDoc(s: DocState): DocState {
         Object.fromEntries(Object.entries(byPerformer).map(([pid, pos]) => [pid, { ...pos }])),
       ]),
     ),
+    comments: s.comments.map((c) => ({ ...c })),
   };
 }
 
@@ -181,12 +214,7 @@ export const useEditor = create<EditorState>()(
               role: '',
               avatarUrl: null,
             };
-            // Default spot: a row across downstage so new performers never stack.
-            const usable = Math.max(s.performance.stageWidth - 3, 1);
-            const step = 1.5;
-            const perRow = Math.max(Math.floor(usable / step), 1);
-            const x = 1.5 + (index % perRow) * step;
-            const y = s.performance.stageHeight - 1.5 - Math.floor(index / perRow) * step;
+            const spot = defaultSpot(index, s.performance.stageWidth, s.performance.stageHeight);
             const positions: PositionMap = { ...s.positions };
             for (const f of s.formations) {
               positions[f.id] = {
@@ -194,8 +222,8 @@ export const useEditor = create<EditorState>()(
                 [performer.id]: {
                   formationId: f.id,
                   performerId: performer.id,
-                  x: clamp(x, 0, s.performance.stageWidth),
-                  y: clamp(y, 0, s.performance.stageHeight),
+                  x: spot.x,
+                  y: spot.y,
                   rotation: 0,
                 },
               };
@@ -205,6 +233,43 @@ export const useEditor = create<EditorState>()(
               positions,
               selectedPerformerIds: [performer.id],
             };
+          }),
+
+        importRoster: (rows) =>
+          mutateDoc((s) => {
+            if (rows.length === 0) return {};
+            const added: Performer[] = rows.map((row, i) => ({
+              id: newId(),
+              performanceId: s.performance.id,
+              name: row.name,
+              color:
+                row.color ??
+                PERFORMER_COLORS[(s.performers.length + i) % PERFORMER_COLORS.length] ??
+                '#e8a84c',
+              role: row.role,
+              avatarUrl: null,
+            }));
+            const positions: PositionMap = { ...s.positions };
+            added.forEach((performer, i) => {
+              const spot = defaultSpot(
+                s.performers.length + i,
+                s.performance.stageWidth,
+                s.performance.stageHeight,
+              );
+              for (const f of s.formations) {
+                positions[f.id] = {
+                  ...positions[f.id],
+                  [performer.id]: {
+                    formationId: f.id,
+                    performerId: performer.id,
+                    x: spot.x,
+                    y: spot.y,
+                    rotation: 0,
+                  },
+                };
+              }
+            });
+            return { performers: [...s.performers, ...added], positions };
           }),
 
         removePerformer: (id) =>
@@ -319,6 +384,27 @@ export const useEditor = create<EditorState>()(
           redoStack.length = 0;
         },
 
+        applyTemplate: (kind) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const byFormation = s.positions[fid];
+            if (byFormation === undefined || s.performers.length === 0) return {};
+            const spots = templateSpots(
+              kind,
+              s.performers.length,
+              s.performance.stageWidth,
+              s.performance.stageHeight,
+            );
+            const updated = { ...byFormation };
+            s.performers.forEach((p, i) => {
+              const spot = spots[i];
+              const existing = updated[p.id];
+              if (spot === undefined || existing === undefined) return;
+              updated[p.id] = { ...existing, x: spot.x, y: spot.y };
+            });
+            return { positions: { ...s.positions, [fid]: updated } };
+          }),
+
         setPosition: (formationId, performerId, x, y) =>
           mutateDoc((s) => {
             const existing = s.positions[formationId]?.[performerId];
@@ -405,6 +491,24 @@ export const useEditor = create<EditorState>()(
             },
           })),
 
+        addComment: (text, performerId, authorName) =>
+          mutateDoc((s) => {
+            const trimmed = text.trim();
+            if (trimmed === '') return {};
+            const comment: DocComment = {
+              id: newId(),
+              formationId: s.selectedFormationId,
+              performerId,
+              authorName,
+              text: trimmed,
+              createdAt: new Date().toISOString(),
+            };
+            return { comments: [...s.comments, comment] };
+          }),
+
+        removeComment: (id) =>
+          mutateDoc((s) => ({ comments: s.comments.filter((c) => c.id !== id) })),
+
         setPlayhead: (ms) => set({ playheadMs: Math.max(0, ms) }),
         setIsPlaying: (playing) => set({ isPlaying: playing }),
 
@@ -430,7 +534,14 @@ export const useEditor = create<EditorState>()(
         performers: s.performers,
         formations: s.formations,
         positions: s.positions,
+        comments: s.comments,
       }),
+      // Docs saved before the comments feature have no `comments` key —
+      // default it so actions never see undefined.
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<DocState>;
+        return { ...current, ...p, comments: p.comments ?? [] };
+      },
     },
   ),
 );

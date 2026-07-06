@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 import { useEditor } from '../state/store';
+import { TEMPLATE_LABELS } from '../state/templates';
+import type { TemplateKind } from '../state/templates';
+import { CommentsSection } from './CommentsSection';
 
 /** Parse a number input, returning null for empty/invalid text. */
 function num(value: string): number | null {
@@ -130,6 +134,7 @@ function PerformerSection(): ReactElement | null {
           Remove from cast
         </button>
       </div>
+      <CommentsSection performerId={performer.id} />
     </>
   );
 }
@@ -141,6 +146,9 @@ function FormationSection(): ReactElement | null {
   const setFormationStart = useEditor((s) => s.setFormationStart);
   const removeFormation = useEditor((s) => s.removeFormation);
   const moveFormation = useEditor((s) => s.moveFormation);
+  const applyTemplate = useEditor((s) => s.applyTemplate);
+  const hasPerformers = useEditor((s) => s.performers.length > 0);
+  const [templateKind, setTemplateKind] = useState<TemplateKind>('line');
 
   const formation = formations.find((f) => f.id === selectedFormationId);
   if (formation === undefined) return null;
@@ -212,6 +220,31 @@ function FormationSection(): ReactElement | null {
             Later →
           </button>
         </div>
+        <div className="field">
+          <label htmlFor="form-template">Template</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select
+              id="form-template"
+              value={templateKind}
+              onChange={(e) => setTemplateKind(e.target.value as TemplateKind)}
+            >
+              {Object.entries(TEMPLATE_LABELS).map(([kind, label]) => (
+                <option key={kind} value={kind}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn"
+              disabled={!hasPerformers}
+              title={hasPerformers ? 'Arrange everyone into this shape' : 'Add performers first'}
+              onClick={() => applyTemplate(templateKind)}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
         <button
           type="button"
           className="btn btn-danger"
@@ -220,6 +253,7 @@ function FormationSection(): ReactElement | null {
           Delete formation
         </button>
       </div>
+      <CommentsSection performerId={null} />
     </>
   );
 }

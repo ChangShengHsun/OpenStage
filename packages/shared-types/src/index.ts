@@ -93,6 +93,21 @@ export interface Comment {
   createdAt: string;
 }
 
+/**
+ * Comment as carried in the editor document (local doc / Yjs). Uses a free
+ * author display name because the client may have no authenticated user;
+ * the API maps this to `Comment.authorId` once accounts exist.
+ */
+export interface DocComment {
+  id: string;
+  formationId: string;
+  /** Null = comment on the whole formation, otherwise on one performer. */
+  performerId: string | null;
+  authorName: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface VersionSnapshot {
   id: string;
   performanceId: string;
