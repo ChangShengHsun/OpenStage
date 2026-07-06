@@ -70,14 +70,19 @@ function Controls({
     const controls = controlsRef.current;
     if (controls === null) return;
     if (followPose !== null) {
-      // Chase cam: behind (upstage of) the dancer and above, looking downstage
-      // past them toward the audience. World pos accounts for the stage-center
-      // group offset. Orbit is off while following.
+      // Chase cam: behind the dancer relative to WHERE THEY FACE and above,
+      // looking the way they look — so as the dancer turns, the camera orbits
+      // to stay at their back. World pos accounts for the stage-center group
+      // offset. Facing vector matches Performer3D: dir = (cos, sin) of
+      // (rotation + 90)°, so rotation 0 (facing audience) points +z downstage.
       const px = followPose.x - w / 2;
       const pz = followPose.y - h / 2;
+      const facingRad = ((followPose.rotation + 90) * Math.PI) / 180;
+      const fx = Math.cos(facingRad);
+      const fz = Math.sin(facingRad);
       controls.enabled = false;
-      camera.position.set(px, 2.4, pz - 3);
-      camera.lookAt(px, 1, pz + 3);
+      camera.position.set(px - fx * 3, 2.4, pz - fz * 3);
+      camera.lookAt(px + fx * 3, 1, pz + fz * 3);
     } else {
       controls.enabled = true;
       controls.update();
