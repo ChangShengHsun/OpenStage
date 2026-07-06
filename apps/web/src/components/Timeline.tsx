@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { PointerEvent as ReactPointerEvent, ReactElement } from 'react';
 import type { Formation } from '@openstage/shared-types';
 import { useEditor } from '../state/store';
-import { byOrder, showEndMs } from '../state/interpolate';
+import { byOrder, effectiveCountSegments, eightCountMarks, showEndMs } from '../state/interpolate';
 import { audioDurationMs, getAudioElement, getWaveformPeaks } from '../audio/audioPlayer';
 import { useT } from '../i18n';
 
@@ -54,6 +54,7 @@ export function Timeline({
   const addBeatMarker = useEditor((s) => s.addBeatMarker);
   const removeBeatMarker = useEditor((s) => s.removeBeatMarker);
   const sections = useEditor((s) => s.performance.sections);
+  const countSegments = useEditor((s) => s.performance.countSegments);
   const addSection = useEditor((s) => s.addSection);
   const renameSection = useEditor((s) => s.renameSection);
   const removeSection = useEditor((s) => s.removeSection);
@@ -213,7 +214,15 @@ export function Timeline({
     }
     let start = clientXToMs(e.clientX) - drag.grabOffsetMs;
     // Snap to the nearest beat when BPM is known; hold Alt for free placement.
-    if (beatMs !== null && !e.altKey) start = Math.round(start / beatMs) * beatMs;
+    // The beat grid anchors on the containing count segment's start (count 1
+    // rarely lands on 0:00), falling back to 0 outside every segment.
+    if (beatMs !== null && !e.altKey) {
+      let anchorMs = 0;
+      for (const seg of effectiveCountSegments(countSegments, totalMs)) {
+        if (start >= seg.startMs) anchorMs = seg.startMs;
+      }
+      start = anchorMs + Math.round((start - anchorMs) / beatMs) * beatMs;
+    }
     useEditor.getState().setFormationStartLive(drag.id, start);
   };
 
@@ -236,10 +245,7 @@ export function Timeline({
   };
 
   const ordered = byOrder(formations);
-  const eightMarks: number[] = [];
-  if (beatMs !== null) {
-    for (let markMs = 0; markMs <= totalMs; markMs += beatMs * 8) eightMarks.push(markMs);
-  }
+  const eightMarks = bpm !== null ? eightCountMarks(totalMs, bpm, countSegments) : [];
 
   return (
     <section className="timeline-panel" aria-label={t.timeline.panelAria}>
@@ -348,13 +354,13 @@ export function Timeline({
             height={70}
             style={{ position: 'absolute', left: 0, top: 36, width: '100%', height: 70 }}
           />
-          {/* 8-count ruler */}
-          {eightMarks.map((markMs, i) => (
+          {/* 8-count ruler — marks restart per count segment */}
+          {eightMarks.map((mark, i) => (
             <div
-              key={markMs}
+              key={`${i}-${mark.ms}`}
               style={{
                 position: 'absolute',
-                left: msToPx(markMs),
+                left: msToPx(mark.ms),
                 top: 0,
                 bottom: 0,
                 width: 1,
@@ -365,7 +371,7 @@ export function Timeline({
                 className="mono"
                 style={{ position: 'absolute', top: 2, left: 3, fontSize: 10, opacity: 0.6 }}
               >
-                {i + 1}
+                {mark.label}
               </span>
             </div>
           ))}

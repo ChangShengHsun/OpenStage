@@ -1,4 +1,4 @@
-import type { Formation, FormationPosition } from '@openstage/shared-types';
+import type { CountSegment, Formation, FormationPosition } from '@openstage/shared-types';
 import type { PositionMap } from './store';
 
 export interface StagePose {
@@ -108,11 +108,59 @@ export function formatTimecode(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}.${tenths}`;
 }
 
-/** Dance 8-count label for a time, e.g. "8ct 3 · 5" (third eight, count 5). */
-export function formatEightCount(ms: number, bpm: number): string {
+/**
+ * The counted ranges in effect: the user's segments, or — when none are
+ * defined — the default "count everything from 0" segment.
+ */
+export function effectiveCountSegments(
+  segments: readonly CountSegment[],
+  fallbackEndMs: number,
+): { startMs: number; endMs: number }[] {
+  if (segments.length === 0) return [{ startMs: 0, endMs: fallbackEndMs }];
+  return [...segments]
+    .filter((seg) => seg.endMs > seg.startMs)
+    .sort((a, b) => a.startMs - b.startMs);
+}
+
+/**
+ * Dance 8-count label for a time, e.g. "8ct 3 · 5" (third eight, count 5).
+ * Count 1 anchors on the containing segment's start; null = an uncounted
+ * moment (outside every segment). No segments = counted from 0 throughout.
+ */
+export function formatEightCount(
+  ms: number,
+  bpm: number,
+  segments: readonly CountSegment[] = [],
+): string | null {
+  const active = effectiveCountSegments(segments, Number.POSITIVE_INFINITY).find(
+    (seg) => ms >= seg.startMs && ms < seg.endMs,
+  );
+  if (active === undefined) return null;
   const beatMs = 60_000 / bpm;
-  const beat = Math.floor(Math.max(0, ms) / beatMs);
+  const beat = Math.floor(Math.max(0, ms - active.startMs) / beatMs);
   const eight = Math.floor(beat / 8) + 1;
   const count = (beat % 8) + 1;
   return `8ct ${eight} · ${count}`;
+}
+
+/**
+ * Ruler tick positions for the timeline: one mark per eight, per counted
+ * segment, each segment numbering its eights from 1 again.
+ */
+export function eightCountMarks(
+  totalMs: number,
+  bpm: number,
+  segments: readonly CountSegment[],
+): { ms: number; label: number }[] {
+  const marks: { ms: number; label: number }[] = [];
+  const eightMs = (60_000 / bpm) * 8;
+  for (const seg of effectiveCountSegments(segments, totalMs)) {
+    const end = Math.min(seg.endMs, totalMs);
+    let label = 1;
+    for (let ms = seg.startMs; ms < end; ms += eightMs) {
+      marks.push({ ms, label });
+      label += 1;
+    }
+  }
+  return marks;
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
+  CountSegment,
   DocComment,
   Formation,
   FormationPosition,
@@ -102,6 +103,11 @@ interface EditorState extends DocState {
   renameSection: (id: string, name: string) => void;
   removeSection: (id: string) => void;
 
+  /** Add a counted (8-count) range. None defined = the whole piece counts from 0. */
+  addCountSegment: (startMs: number, endMs: number) => void;
+  updateCountSegment: (id: string, patch: Partial<Pick<CountSegment, 'startMs' | 'endMs'>>) => void;
+  removeCountSegment: (id: string) => void;
+
   addComment: (text: string, performerId: string | null, authorName: string) => void;
   removeComment: (id: string) => void;
 
@@ -158,6 +164,7 @@ function createInitialDoc(): DocState {
       audioAssetId: null,
       beatMarkersMs: [],
       sections: [],
+      countSegments: [],
     },
     performers: [],
     formations: [
@@ -729,6 +736,35 @@ export const useEditor = create<EditorState>()(
             },
           })),
 
+        addCountSegment: (startMs, endMs) =>
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              countSegments: [
+                ...s.performance.countSegments,
+                { id: newId(), startMs: Math.max(0, startMs), endMs: Math.max(0, endMs) },
+              ].sort((a, b) => a.startMs - b.startMs),
+            },
+          })),
+
+        updateCountSegment: (id, patch) =>
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              countSegments: s.performance.countSegments
+                .map((seg) => (seg.id === id ? { ...seg, ...patch } : seg))
+                .sort((a, b) => a.startMs - b.startMs),
+            },
+          })),
+
+        removeCountSegment: (id) =>
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              countSegments: s.performance.countSegments.filter((seg) => seg.id !== id),
+            },
+          })),
+
         addComment: (text, performerId, authorName) =>
           mutateDoc((s) => {
             const trimmed = text.trim();
@@ -793,10 +829,15 @@ export const useEditor = create<EditorState>()(
       // default it so actions never see undefined.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<DocState>;
-        // Old docs predate `sections`; default it so actions never see undefined.
+        // Old docs predate `sections`/`countSegments`; default them so
+        // actions never see undefined.
         const performance =
           p.performance !== undefined
-            ? { ...p.performance, sections: p.performance.sections ?? [] }
+            ? {
+                ...p.performance,
+                sections: p.performance.sections ?? [],
+                countSegments: p.performance.countSegments ?? [],
+              }
             : current.performance;
         return { ...current, ...p, performance, comments: p.comments ?? [] };
       },

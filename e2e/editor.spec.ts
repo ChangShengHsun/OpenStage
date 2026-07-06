@@ -442,6 +442,30 @@ test('PDF export downloads a file', async ({ page }) => {
   expect(download.suggestedFilename()).toContain('walk-charts.pdf');
 });
 
+test('count segments anchor count 1 away from 0:00', async ({ page }) => {
+  await page.locator('#stage-bpm').fill('120');
+  // Default (no segments): counting runs from 0:00.
+  await expect(page.getByLabel('Playhead time')).toContainText('8ct 1 · 1');
+
+  // Add a segment at the playhead (0), then move its start to 2s.
+  await page.getByRole('button', { name: 'Add count segment' }).click();
+  await page.getByLabel('Count segment 1 start (s)').fill('2');
+  // 0:00 is now an uncounted moment.
+  await expect(page.getByLabel('Playhead time')).not.toContainText('8ct');
+
+  // Step the playhead to exactly 2s (4 x 500ms): count 1 lands there.
+  await page.getByLabel('Playhead position').click({ position: { x: 1, y: 100 } });
+  await page.getByLabel('Playhead position').press('ArrowRight');
+  await page.getByLabel('Playhead position').press('ArrowRight');
+  await page.getByLabel('Playhead position').press('ArrowRight');
+  await page.getByLabel('Playhead position').press('ArrowRight');
+  await expect(page.getByLabel('Playhead time')).toContainText('8ct 1 · 1');
+
+  // Removing the segment restores the default.
+  await page.getByLabel('Remove count segment 1').click();
+  await expect(page.getByLabel('Playhead time')).toContainText('8ct 1 · 5');
+});
+
 test('tap tempo calibrates BPM from clicks', async ({ page }) => {
   await page.getByRole('button', { name: 'Calibrate BPM' }).click(); // first tap = the downbeat
   for (let i = 0; i < 7; i++) {

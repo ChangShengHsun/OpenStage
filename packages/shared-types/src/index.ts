@@ -44,6 +44,20 @@ export interface Performance {
   beatMarkersMs: number[];
   /** Named timeline sections (verse, chorus…), independent of formations. */
   sections: PerformanceSection[];
+  /**
+   * Ranges of the piece that are counted in 8-counts. Music rarely starts on
+   * count 1, and some passages aren't counted at all, so each segment anchors
+   * count 1 at its own startMs. EMPTY = the default: count the whole piece
+   * from 0 (also what docs saved before this field existed mean).
+   */
+  countSegments: CountSegment[];
+}
+
+/** One counted passage: count 1 lands on startMs, counting stops at endMs. */
+export interface CountSegment {
+  id: string;
+  startMs: number;
+  endMs: number;
 }
 
 /** A named label on the timeline at a point in time (not tied to a formation). */

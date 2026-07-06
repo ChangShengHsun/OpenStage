@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Formation } from '@openstage/shared-types';
 import type { PositionMap } from './store';
-import { formatEightCount, formatTimecode, lerpAngle, posesAtTime, showEndMs } from './interpolate';
+import {
+  eightCountMarks,
+  formatEightCount,
+  formatTimecode,
+  lerpAngle,
+  posesAtTime,
+  showEndMs,
+} from './interpolate';
 
 function formation(partial: Partial<Formation> & Pick<Formation, 'id' | 'orderIndex'>): Formation {
   return {
@@ -114,5 +121,50 @@ describe('helpers', () => {
     expect(formatEightCount(0, 120)).toBe('8ct 1 · 1');
     // 120 BPM -> 500ms/beat; 4000ms = beat 8 -> second eight, count 1
     expect(formatEightCount(4000, 120)).toBe('8ct 2 · 1');
+  });
+
+  it('anchors count 1 on the segment start', () => {
+    const segments = [{ id: 'a', startMs: 2000, endMs: 10_000 }];
+    expect(formatEightCount(2000, 120, segments)).toBe('8ct 1 · 1');
+    expect(formatEightCount(2500, 120, segments)).toBe('8ct 1 · 2');
+    expect(formatEightCount(6000, 120, segments)).toBe('8ct 2 · 1');
+  });
+
+  it('returns null outside every segment, and restarts in the next one', () => {
+    const segments = [
+      { id: 'a', startMs: 2000, endMs: 6000 },
+      { id: 'b', startMs: 10_000, endMs: 14_000 },
+    ];
+    expect(formatEightCount(1000, 120, segments)).toBeNull(); // before
+    expect(formatEightCount(8000, 120, segments)).toBeNull(); // the gap
+    expect(formatEightCount(10_000, 120, segments)).toBe('8ct 1 · 1'); // restarted
+    expect(formatEightCount(20_000, 120, segments)).toBeNull(); // after
+  });
+
+  it('ignores degenerate segments (end <= start)', () => {
+    expect(formatEightCount(0, 120, [{ id: 'x', startMs: 5000, endMs: 5000 }])).toBeNull();
+  });
+});
+
+describe('eightCountMarks', () => {
+  it('defaults to marks from 0 across the whole span', () => {
+    // 120 BPM -> one eight = 4000ms
+    expect(eightCountMarks(12_000, 120, [])).toEqual([
+      { ms: 0, label: 1 },
+      { ms: 4000, label: 2 },
+      { ms: 8000, label: 3 },
+    ]);
+  });
+
+  it('marks each segment separately, restarting labels', () => {
+    const segments = [
+      { id: 'a', startMs: 2000, endMs: 10_000 },
+      { id: 'b', startMs: 20_000, endMs: 24_000 },
+    ];
+    expect(eightCountMarks(30_000, 120, segments)).toEqual([
+      { ms: 2000, label: 1 },
+      { ms: 6000, label: 2 },
+      { ms: 20_000, label: 1 },
+    ]);
   });
 });

@@ -121,7 +121,9 @@ function build2dRenderer(
     ctx.fillStyle = DIM;
     ctx.font = `16px ${MONO}`;
     ctx.textAlign = 'right';
-    const counts = bpm !== null ? `  ${formatEightCount(tMs, bpm)}` : '';
+    const eightCount =
+      bpm !== null ? formatEightCount(tMs, bpm, doc.performance.countSegments) : null;
+    const counts = eightCount !== null ? `  ${eightCount}` : '';
     ctx.fillText(`${formatTimecode(tMs)}${counts}`, W - sideM, 46);
 
     ctx.fillStyle = FLOOR;

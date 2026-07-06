@@ -7,6 +7,8 @@ import type { Snapshot } from '../state/history';
 import { CommentsSection } from './CommentsSection';
 import { useT } from '../i18n';
 import { appendTap, bpmFromTaps, MIN_TAPS_TO_APPLY } from '../audio/tapTempo';
+import { showEndMs } from '../state/interpolate';
+import { audioDurationMs } from '../audio/audioPlayer';
 
 /** Parse a number input, returning null for empty/invalid text. */
 function num(value: string): number | null {
@@ -346,6 +348,17 @@ function StageSection(): ReactElement {
   const performance = useEditor((s) => s.performance);
   const setStageSize = useEditor((s) => s.setStageSize);
   const setBpm = useEditor((s) => s.setBpm);
+  const addCountSegment = useEditor((s) => s.addCountSegment);
+  const updateCountSegment = useEditor((s) => s.updateCountSegment);
+  const removeCountSegment = useEditor((s) => s.removeCountSegment);
+
+  const onAddCountSegment = (): void => {
+    // Playhead read on click only — subscribing would re-render every frame.
+    const s = useEditor.getState();
+    const startMs = s.playheadMs;
+    const endMs = Math.max(showEndMs(s.formations), audioDurationMs(), startMs + 8000);
+    addCountSegment(startMs, endMs);
+  };
 
   // Tap-tempo calibration: the button is the tap target; Date.now() because
   // the local `performance` above shadows window.performance here.
@@ -429,6 +442,77 @@ function StageSection(): ReactElement {
               </button>
             </>
           )}
+        </div>
+        <div className="field">
+          <span className="field-label">{t.stage.countSegments}</span>
+          {performance.countSegments.length === 0 && (
+            <span className="mono">{t.stage.countSegmentsNote}</span>
+          )}
+          {performance.countSegments.map((seg, i) => (
+            <div key={seg.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="number"
+                aria-label={t.stage.segStartAria(i + 1)}
+                min={0}
+                step={0.1}
+                style={{ flex: 1 }}
+                value={Number((seg.startMs / 1000).toFixed(1))}
+                onChange={(e) => {
+                  const v = num(e.target.value);
+                  if (v !== null) updateCountSegment(seg.id, { startMs: v * 1000 });
+                }}
+              />
+              <button
+                type="button"
+                className="btn"
+                title={t.stage.segAtPlayheadTitle}
+                onClick={() =>
+                  updateCountSegment(seg.id, { startMs: useEditor.getState().playheadMs })
+                }
+              >
+                @
+              </button>
+              <span className="mono">–</span>
+              <input
+                type="number"
+                aria-label={t.stage.segEndAria(i + 1)}
+                min={0}
+                step={0.1}
+                style={{ flex: 1 }}
+                value={Number((seg.endMs / 1000).toFixed(1))}
+                onChange={(e) => {
+                  const v = num(e.target.value);
+                  if (v !== null) updateCountSegment(seg.id, { endMs: v * 1000 });
+                }}
+              />
+              <button
+                type="button"
+                className="btn"
+                title={t.stage.segAtPlayheadTitle}
+                onClick={() =>
+                  updateCountSegment(seg.id, { endMs: useEditor.getState().playheadMs })
+                }
+              >
+                @
+              </button>
+              <button
+                type="button"
+                className="comment-delete"
+                aria-label={t.stage.removeSegmentAria(i + 1)}
+                onClick={() => removeCountSegment(seg.id)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="btn edit-only"
+            title={t.stage.addCountSegmentTitle}
+            onClick={onAddCountSegment}
+          >
+            {t.stage.addCountSegment}
+          </button>
         </div>
       </div>
     </>

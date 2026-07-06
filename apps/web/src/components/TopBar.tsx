@@ -18,10 +18,12 @@ export function TopBar({ onExportPdf }: TopBarProps): ReactElement {
   const setLocale = useLocaleStore((s) => s.setLocale);
   const title = useEditor((s) => s.performance.title);
   const bpm = useEditor((s) => s.performance.bpm);
+  const countSegments = useEditor((s) => s.performance.countSegments);
   const setTitle = useEditor((s) => s.setTitle);
   const playheadMs = useEditor((s) => s.playheadMs);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
+  const eightCount = bpm !== null ? formatEightCount(playheadMs, bpm, countSegments) : null;
 
   const peers = usePeers();
   const [userName, setUserName] = useState(() => getLocalUser().name);
@@ -165,7 +167,7 @@ export function TopBar({ onExportPdf }: TopBarProps): ReactElement {
       )}
       <span className="timecode" aria-label={t.topbar.playheadAria}>
         {formatTimecode(playheadMs)}
-        {bpm !== null ? `  ${formatEightCount(playheadMs, bpm)}` : ''}
+        {eightCount !== null ? `  ${eightCount}` : ''}
       </span>
       <button type="button" className="btn" onClick={onExportPdf}>
         {t.topbar.exportPdf}
