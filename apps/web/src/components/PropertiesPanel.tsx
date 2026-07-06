@@ -6,8 +6,7 @@ import { deleteSnapshot, listSnapshots, saveSnapshot } from '../state/history';
 import type { Snapshot } from '../state/history';
 import { CommentsSection } from './CommentsSection';
 import { useT } from '../i18n';
-import { getAudioSamples } from '../audio/audioPlayer';
-import { detectBpm } from '../audio/bpm';
+import { appendTap, bpmFromTaps, MIN_TAPS_TO_APPLY } from '../audio/tapTempo';
 
 /** Parse a number input, returning null for empty/invalid text. */
 function num(value: string): number | null {
@@ -279,25 +278,11 @@ function StageSection(): ReactElement {
   const setStageSize = useEditor((s) => s.setStageSize);
   const setBpm = useEditor((s) => s.setBpm);
 
-  const [detecting, setDetecting] = useState(false);
-  const [suggestedBpm, setSuggestedBpm] = useState<number | null>(null);
-  const [detectNote, setDetectNote] = useState('');
-
-  const onDetectBpm = (): void => {
-    setDetecting(true);
-    setSuggestedBpm(null);
-    setDetectNote('');
-    void (async (): Promise<void> => {
-      const audio = await getAudioSamples();
-      if (audio === null) {
-        setDetectNote(t.stage.detectBpmNoAudio);
-        return;
-      }
-      const estimate = detectBpm(audio.samples, audio.sampleRate);
-      if (estimate === null) setDetectNote(t.stage.detectBpmFailed);
-      else setSuggestedBpm(Math.round(estimate.bpm));
-    })().finally(() => setDetecting(false));
-  };
+  // Tap-tempo calibration: the button is the tap target; Date.now() because
+  // the local `performance` above shadows window.performance here.
+  const [taps, setTaps] = useState<number[]>([]);
+  const liveBpm = bpmFromTaps(taps);
+  const onTap = (): void => setTaps((prev) => appendTap(prev, Date.now()));
 
   return (
     <>
@@ -348,33 +333,32 @@ function StageSection(): ReactElement {
           <button
             type="button"
             className="btn edit-only"
-            disabled={detecting}
-            title={t.stage.detectBpmTitle}
-            onClick={onDetectBpm}
+            title={t.stage.calibrateBpmTitle}
+            onClick={onTap}
           >
-            {detecting ? t.stage.detecting : t.stage.detectBpm}
+            {taps.length === 0 ? t.stage.calibrateBpm : t.stage.tapLabel(taps.length)}
           </button>
-          {suggestedBpm !== null && (
+          {taps.length > 0 && (
             <>
               <span className="mono" role="status">
-                {t.stage.detectedBpm(suggestedBpm)}
+                {liveBpm !== null ? `≈ ${Math.round(liveBpm)} BPM` : t.stage.tapHint}
               </span>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setBpm(suggestedBpm);
-                  setSuggestedBpm(null);
-                }}
-              >
-                {t.stage.applyBpm(suggestedBpm)}
+              {liveBpm !== null && taps.length >= MIN_TAPS_TO_APPLY && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setBpm(Math.round(liveBpm));
+                    setTaps([]);
+                  }}
+                >
+                  {t.stage.applyBpm(Math.round(liveBpm))}
+                </button>
+              )}
+              <button type="button" className="btn" onClick={() => setTaps([])}>
+                {t.stage.resetTap}
               </button>
             </>
-          )}
-          {detectNote !== '' && (
-            <span className="mono" role="status">
-              {detectNote}
-            </span>
           )}
         </div>
       </div>

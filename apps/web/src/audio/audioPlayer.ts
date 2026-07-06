@@ -101,25 +101,6 @@ export function getAudioBlob(): Blob | null {
   return audioBlob;
 }
 
-/**
- * Decoded mono samples for analysis (BPM detection). Decoded on demand and
- * not cached — a 3-minute song is ~30 MB of Float32 and this is a rare,
- * one-click operation.
- */
-export async function getAudioSamples(): Promise<{
-  samples: Float32Array;
-  sampleRate: number;
-} | null> {
-  if (audioBlob === null) return null;
-  const ctx = new AudioContext();
-  try {
-    const decoded = await ctx.decodeAudioData(await audioBlob.arrayBuffer());
-    return { samples: decoded.getChannelData(0), sampleRate: decoded.sampleRate };
-  } finally {
-    void ctx.close();
-  }
-}
-
 export function audioDurationMs(): number {
   if (audioEl === null || !Number.isFinite(audioEl.duration)) return 0;
   return audioEl.duration * 1000;

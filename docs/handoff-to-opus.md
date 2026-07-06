@@ -166,17 +166,16 @@ footgun — use `registerType: 'autoUpdate'` and verify a deploy actually
 updates. Acceptance: `pnpm build && pnpm preview`, DevTools offline mode,
 app still loads; document that collab obviously needs network.
 
-### V3d — automatic BPM detection — DONE (2026-07-06)
-Implemented in `apps/web/src/audio/bpm.ts` (pure, 9 unit tests) + a
-suggest-and-apply row in StageSection + one e2e (click-track WAV upload →
-Detect → Use). Algorithm notes for whoever touches it next: energy flux at
-~100 Hz envelope, density check kills tones/noise, 5-point smoothing prevents
-fractional-lag tempos folding to their integer-lag subharmonic (the 160→80
-bug), log-Gaussian prior around 120 BPM resolves octave ambiguity, parabolic
-interpolation gets sub-frame precision. Known ceilings are commented in the
-file (`ponytail:` markers): time-domain flux struggles with soft melodic
-onsets (upgrade: per-band spectral flux), and the 0.25 density threshold is
-the knob if real songs report "no steady beat".
+### V3d — BPM calibration — DONE (2026-07-06, as tap tempo)
+Ivan rejected automatic signal-analysis detection on real music ("這個功能
+很爛") and asked for manual tap calibration instead: click "Calibrate BPM"
+on a downbeat, keep clicking once per beat, apply the measured tempo.
+Implemented in `apps/web/src/audio/tapTempo.ts` (pure: span/(n−1) estimator
++ 3s-pause auto-restart, 7 unit tests) + StageSection UI + one e2e.
+The old detector (`audio/bpm.ts` + its 9 tests) is PARKED — pure,
+self-contained, no UI references it. If a future feature wants auto-detect
+(e.g. pre-filling the tap value), start from Ivan's UX complaint, not from
+re-enabling it as-is; delete the file if Ivan says so.
 
 ### V4 + backend (bigger, propose a plan to Ivan first — >10 files rule)
 - **Backend verification** (first Docker session): see §4.

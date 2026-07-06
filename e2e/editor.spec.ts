@@ -53,36 +53,6 @@ function makeWav(): Buffer {
   return Buffer.concat([h, data]);
 }
 
-/** 16-bit mono WAV click track: a decaying 1kHz burst on every beat. */
-function makeClickWav(bpm: number, seconds: number): Buffer {
-  const rate = 22050;
-  const n = rate * seconds;
-  const data = Buffer.alloc(n * 2);
-  const beatPeriodS = 60 / bpm;
-  for (let i = 0; i < n; i++) {
-    const sinceBeatS = (i / rate) % beatPeriodS;
-    const v =
-      sinceBeatS < 0.05
-        ? Math.sin(2 * Math.PI * 1000 * sinceBeatS) * Math.exp(-sinceBeatS * 80) * 0.8
-        : 0;
-    data.writeInt16LE(Math.round(v * 30000), i * 2);
-  }
-  const h = Buffer.alloc(44);
-  h.write('RIFF', 0);
-  h.writeUInt32LE(36 + data.length, 4);
-  h.write('WAVEfmt ', 8);
-  h.writeUInt32LE(16, 16);
-  h.writeUInt16LE(1, 20);
-  h.writeUInt16LE(1, 22);
-  h.writeUInt32LE(rate, 24);
-  h.writeUInt32LE(rate * 2, 28);
-  h.writeUInt16LE(2, 32);
-  h.writeUInt16LE(16, 34);
-  h.write('data', 36);
-  h.writeUInt32LE(data.length, 40);
-  return Buffer.concat([h, data]);
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.getByText('Add performer').waitFor();
@@ -351,22 +321,20 @@ test('PDF export downloads a file', async ({ page }) => {
   expect(download.suggestedFilename()).toContain('walk-charts.pdf');
 });
 
-test('BPM detection suggests the click-track tempo and applies it', async ({ page }) => {
-  await page
-    .getByLabel('Audio file')
-    .setInputFiles({ name: 'click.wav', mimeType: 'audio/wav', buffer: makeClickWav(120, 8) });
-  await page.getByRole('button', { name: 'Replace audio' }).waitFor();
-
-  await page.getByRole('button', { name: 'Detect from audio' }).click();
-  const result = page.getByText(/Detected \d+ BPM/);
-  await expect(result).toBeVisible({ timeout: 15_000 });
-  const bpm = Number(/\d+/.exec((await result.textContent()) ?? '')?.[0] ?? 0);
-  expect(Math.abs(bpm - 120)).toBeLessThanOrEqual(2);
-
+test('tap tempo calibrates BPM from clicks', async ({ page }) => {
+  await page.getByRole('button', { name: 'Calibrate BPM' }).click(); // first tap = the downbeat
+  for (let i = 0; i < 7; i++) {
+    await page.waitForTimeout(500); // ~120 BPM target
+    await page.getByRole('button', { name: /Tap \d+/ }).click();
+  }
   // Suggestion only — the BPM field is untouched until the user applies it.
   await expect(page.locator('#stage-bpm')).toHaveValue('');
-  await page.getByRole('button', { name: `Use ${bpm}` }).click();
-  await expect(page.locator('#stage-bpm')).toHaveValue(String(bpm));
+  const useButton = page.getByRole('button', { name: /Use \d+/ });
+  await useButton.click();
+  const value = Number(await page.locator('#stage-bpm').inputValue());
+  // Timer jitter slows the taps a little; accept a band around 120.
+  expect(value).toBeGreaterThanOrEqual(90);
+  expect(value).toBeLessThanOrEqual(125);
 });
 
 test('language switcher persists across reloads', async ({ page }) => {
