@@ -58,7 +58,20 @@ pnpm install
 pnpm dev:web          # http://localhost:5173
 ```
 
-The MVP editor persists to browser localStorage — no backend required.
+The editor persists to browser localStorage — no backend required.
+
+### Realtime collaboration (local)
+
+```bash
+HOST=127.0.0.1 PORT=1234 pnpm --filter @openstage/collab-server start
+pnpm dev:web
+```
+
+Click **Share live** in the top bar — the app reloads into a `?room=` URL you
+can send to collaborators (same LAN or via the deployed collab server). Peers
+see each other's cursors, selections, and edits live; Ctrl+Z only reverts your
+own changes. **View link** copies a `?mode=view` variant that hides editing UI
+(a convenience, not access control — real permissions need the backend).
 
 ## Full stack with Docker
 
@@ -94,10 +107,11 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 ## Roadmap
 
-- **MVP** — 2D editor with performer orientation, formation timeline, audio upload +
-  manual beat markers, PDF export (walk charts + roster)
-- **V1** — Yjs real-time collaboration, comments, formation template library,
-  CSV roster import, roles & share links
+- **MVP** ✅ — 2D editor with performer orientation, formation timeline (drag +
+  zoom), audio upload + manual beat markers, PDF export (walk charts + roster)
+- **V1** ✅ — Yjs real-time collaboration (cursors/presence/per-user undo),
+  comments, formation template library, CSV roster import, view-only share
+  links (server-enforced roles still need the backend)
 - **V2** — 3D preview, curved (Bézier) transition paths, auto-transition
   (Hungarian matching) + collision warnings, version history
 - **V3** — rule-based formation suggestions, MP4/GIF animation export, PWA offline,
