@@ -42,6 +42,16 @@ export interface Performance {
   audioAssetId: string | null;
   /** Manual beat markers, ms from audio start. Stored as JSONB server-side. */
   beatMarkersMs: number[];
+  /** Named timeline sections (verse, chorus…), independent of formations. */
+  sections: PerformanceSection[];
+}
+
+/** A named label on the timeline at a point in time (not tied to a formation). */
+export interface PerformanceSection {
+  id: string;
+  /** Milliseconds from audio start. */
+  timeMs: number;
+  name: string;
 }
 
 export interface Formation {

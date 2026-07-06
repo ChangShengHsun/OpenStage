@@ -5,7 +5,11 @@ import type { Page } from '@playwright/test';
 /** Persisted doc shape (zustand persist envelope). */
 interface PersistedDoc {
   state: {
-    performance: { beatMarkersMs: number[]; bpm: number | null };
+    performance: {
+      beatMarkersMs: number[];
+      bpm: number | null;
+      sections?: { id: string; timeMs: number; name: string }[];
+    };
     performers: { id: string; name: string }[];
     formations: { id: string; orderIndex: number; startTimeMs: number }[];
     positions: Record<string, Record<string, { x: number; y: number; rotation: number }>>;
@@ -148,6 +152,24 @@ test('formation tools: mirror flips x, align row shares depth', async ({ page })
   expect(
     Math.abs((state.positions[fid]?.[p1]?.y ?? 0) - (state.positions[fid]?.[p2]?.y ?? 1)),
   ).toBeLessThan(0.05);
+});
+
+test('section markers: add, name, persist, remove', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add section' }).click();
+  // The rename box is focused immediately; type a name and commit.
+  await page.getByLabel('Section name').fill('Chorus');
+  await page.getByLabel('Section name').press('Enter');
+
+  let doc = await readDoc(page);
+  expect(doc.performance.sections?.[0]?.name).toBe('Chorus');
+
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  await expect(page.getByText('Chorus')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Remove section Chorus' }).click();
+  doc = await readDoc(page);
+  expect(doc.performance.sections ?? []).toHaveLength(0);
 });
 
 test('playback without audio advances and pauses', async ({ page }) => {

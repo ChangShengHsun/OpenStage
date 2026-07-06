@@ -97,6 +97,11 @@ interface EditorState extends DocState {
   addBeatMarker: (ms: number) => void;
   removeBeatMarker: (ms: number) => void;
 
+  /** Drop a named section marker at the given time; returns its new id. */
+  addSection: (ms: number, name: string) => string;
+  renameSection: (id: string, name: string) => void;
+  removeSection: (id: string) => void;
+
   addComment: (text: string, performerId: string | null, authorName: string) => void;
   removeComment: (id: string) => void;
 
@@ -152,6 +157,7 @@ function createInitialDoc(): DocState {
       bpm: null,
       audioAssetId: null,
       beatMarkersMs: [],
+      sections: [],
     },
     performers: [],
     formations: [
@@ -691,6 +697,38 @@ export const useEditor = create<EditorState>()(
             },
           })),
 
+        addSection: (ms, name) => {
+          const id = newId();
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              sections: [
+                ...s.performance.sections,
+                { id, timeMs: Math.max(0, Math.round(ms)), name },
+              ].sort((a, b) => a.timeMs - b.timeMs),
+            },
+          }));
+          return id;
+        },
+
+        renameSection: (id, name) =>
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              sections: s.performance.sections.map((sec) =>
+                sec.id === id ? { ...sec, name } : sec,
+              ),
+            },
+          })),
+
+        removeSection: (id) =>
+          mutateDoc((s) => ({
+            performance: {
+              ...s.performance,
+              sections: s.performance.sections.filter((sec) => sec.id !== id),
+            },
+          })),
+
         addComment: (text, performerId, authorName) =>
           mutateDoc((s) => {
             const trimmed = text.trim();
@@ -755,7 +793,12 @@ export const useEditor = create<EditorState>()(
       // default it so actions never see undefined.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<DocState>;
-        return { ...current, ...p, comments: p.comments ?? [] };
+        // Old docs predate `sections`; default it so actions never see undefined.
+        const performance =
+          p.performance !== undefined
+            ? { ...p.performance, sections: p.performance.sections ?? [] }
+            : current.performance;
+        return { ...current, ...p, performance, comments: p.comments ?? [] };
       },
     },
   ),

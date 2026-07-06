@@ -53,6 +53,11 @@ export function Timeline({
   const setPlayhead = useEditor((s) => s.setPlayhead);
   const addBeatMarker = useEditor((s) => s.addBeatMarker);
   const removeBeatMarker = useEditor((s) => s.removeBeatMarker);
+  const sections = useEditor((s) => s.performance.sections);
+  const addSection = useEditor((s) => s.addSection);
+  const renameSection = useEditor((s) => s.renameSection);
+  const removeSection = useEditor((s) => s.removeSection);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -258,6 +263,17 @@ export function Timeline({
         >
           {t.timeline.tapBeat}
         </button>
+        <button
+          type="button"
+          className="btn edit-only"
+          title={t.timeline.addSectionTitle}
+          onClick={() => {
+            const id = addSection(useEditor.getState().playheadMs, t.timeline.sectionDefault);
+            setEditingSection(id);
+          }}
+        >
+          {t.timeline.addSection}
+        </button>
         <button type="button" className="btn btn-primary" onClick={onTogglePlay}>
           {isPlaying ? t.topbar.pause : t.topbar.play}
         </button>
@@ -351,6 +367,62 @@ export function Timeline({
               >
                 {i + 1}
               </span>
+            </div>
+          ))}
+          {/* section markers — faint full-height divider + a small top label */}
+          {sections.map((sec) => (
+            <div
+              key={sec.id}
+              data-skip-scrub="true"
+              style={{ position: 'absolute', left: msToPx(sec.timeMs), top: 0, bottom: 0, zIndex: 3 }}
+            >
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  top: 18,
+                  bottom: 0,
+                  left: 0,
+                  width: 1,
+                  background: 'rgba(88, 181, 164, 0.35)',
+                }}
+              />
+              {editingSection === sec.id ? (
+                <input
+                  data-skip-scrub="true"
+                  aria-label={t.timeline.renameSectionAria}
+                  defaultValue={sec.name}
+                  autoFocus
+                  style={{ position: 'absolute', top: 0, left: 1, width: 84, fontSize: 11, padding: '1px 3px' }}
+                  onBlur={(e) => {
+                    renameSection(sec.id, e.target.value.trim() || t.timeline.sectionDefault);
+                    setEditingSection(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur();
+                    if (e.key === 'Escape') setEditingSection(null);
+                  }}
+                />
+              ) : (
+                <span data-skip-scrub="true" className="section-flag">
+                  <span
+                    data-skip-scrub="true"
+                    onClick={() => setEditingSection(sec.id)}
+                    style={{ cursor: 'text' }}
+                  >
+                    {sec.name}
+                  </span>
+                  <button
+                    type="button"
+                    data-skip-scrub="true"
+                    className="section-flag-x"
+                    aria-label={t.timeline.removeSectionAria(sec.name)}
+                    onClick={() => removeSection(sec.id)}
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
             </div>
           ))}
           {/* beat markers */}

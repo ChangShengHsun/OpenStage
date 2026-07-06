@@ -351,6 +351,41 @@ input[type='color'] {
   user-select: none;
 }
 
+.section-flag {
+  position: absolute;
+  top: 0;
+  left: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 108px;
+  padding: 1px 3px;
+  font-size: 11px;
+  color: #7fd4c4;
+  background: rgba(25, 21, 18, 0.85);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.section-flag > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.section-flag-x {
+  border: none;
+  background: none;
+  color: var(--ink-dim);
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.section-flag-x:hover {
+  color: var(--danger);
+}
+
 /* ---- 2D/3D toggle ------------------------------------------------------ */
 
 .view-toggle {
