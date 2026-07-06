@@ -16,6 +16,8 @@ import {
 } from '@openstage/shared-types';
 import { planTransition } from '@openstage/path-planner';
 import { reindexByStart } from './formationOrder';
+import { alignSpots, distributeSpots, mirrorAcrossX } from './formationTransform';
+import type { Spot } from './formationTransform';
 import { byOrder } from './interpolate';
 import { templateSpots } from './templates';
 import type { TemplateKind } from './templates';
@@ -70,6 +72,15 @@ interface EditorState extends DocState {
    */
   untangleFromPrevious: () => void;
 
+  /** Mirror the selected formation left-right across the stage center line. */
+  mirrorFormation: () => void;
+  /** Swap the placement of the two selected performers (current formation). */
+  swapSelected: () => void;
+  /** Align selected performers onto a shared row (y) or column (x). */
+  alignSelected: (axis: 'row' | 'col') => void;
+  /** Evenly space selected performers between their extremes on one axis. */
+  distributeSelected: (axis: 'x' | 'y') => void;
+
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
   /** Same, but WITHOUT recording history — for continuous drag frames. */
   setPositionLive: (formationId: string, performerId: string, x: number, y: number) => void;
@@ -102,6 +113,30 @@ interface EditorState extends DocState {
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+type PositionsByPerformer = Record<string, FormationPosition>;
+
+/** Pull the given performers out of a formation as plain spots for the transforms. */
+function selectedSpots(current: PositionsByPerformer, ids: readonly string[]): Spot[] {
+  const spots: Spot[] = [];
+  for (const id of ids) {
+    const pos = current[id];
+    if (pos !== undefined) spots.push({ id, x: pos.x, y: pos.y, rotation: pos.rotation });
+  }
+  return spots;
+}
+
+/** Write transformed spots back onto a formation's positions, leaving others untouched. */
+function applySpots(current: PositionsByPerformer, spots: readonly Spot[]): PositionsByPerformer {
+  const updated = { ...current };
+  for (const spot of spots) {
+    const existing = updated[spot.id];
+    if (existing !== undefined) {
+      updated[spot.id] = { ...existing, x: spot.x, y: spot.y, rotation: spot.rotation };
+    }
+  }
+  return updated;
 }
 
 function createInitialDoc(): DocState {
@@ -467,6 +502,65 @@ export const useEditor = create<EditorState>()(
               updated[pid] = { ...existing, x: target.x, y: target.y, rotation: target.rotation };
             });
             return { positions: { ...s.positions, [current.id]: updated } };
+          }),
+
+        mirrorFormation: () =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined) return {};
+            const spots = Object.entries(current).map(([id, pos]) => ({
+              id,
+              x: pos.x,
+              y: pos.y,
+              rotation: pos.rotation,
+            }));
+            const mirrored = mirrorAcrossX(spots, s.performance.stageWidth);
+            return { positions: { ...s.positions, [fid]: applySpots(current, mirrored) } };
+          }),
+
+        swapSelected: () =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const [idA, idB] = s.selectedPerformerIds;
+            const current = s.positions[fid];
+            if (idA === undefined || idB === undefined || s.selectedPerformerIds.length !== 2)
+              return {};
+            const a = current?.[idA];
+            const b = current?.[idB];
+            if (a === undefined || b === undefined) return {};
+            return {
+              positions: {
+                ...s.positions,
+                [fid]: {
+                  ...current,
+                  [idA]: { ...a, x: b.x, y: b.y, rotation: b.rotation },
+                  [idB]: { ...b, x: a.x, y: a.y, rotation: a.rotation },
+                },
+              },
+            };
+          }),
+
+        alignSelected: (axis) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined || s.selectedPerformerIds.length < 2) return {};
+            const selected = selectedSpots(current, s.selectedPerformerIds);
+            if (selected.length < 2) return {};
+            return { positions: { ...s.positions, [fid]: applySpots(current, alignSpots(selected, axis)) } };
+          }),
+
+        distributeSelected: (axis) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined || s.selectedPerformerIds.length < 3) return {};
+            const selected = selectedSpots(current, s.selectedPerformerIds);
+            if (selected.length < 3) return {};
+            return {
+              positions: { ...s.positions, [fid]: applySpots(current, distributeSpots(selected, axis)) },
+            };
           }),
 
         setPosition: (formationId, performerId, x, y) =>

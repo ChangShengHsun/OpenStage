@@ -118,6 +118,38 @@ test('second formation copies positions and edits independently', async ({ page 
   expect(Math.abs((state.positions[f2]?.[pid]?.x ?? 0) - 9)).toBeLessThan(0.3);
 });
 
+test('formation tools: mirror flips x, align row shares depth', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+
+  // Place them deterministically via the X/Y inputs: (3,2) and (9,6).
+  await page.getByText('Dancer 1').first().click();
+  await page.locator('#pos-x').fill('3');
+  await page.locator('#pos-y').fill('2');
+  await page.getByText('Dancer 2').first().click();
+  await page.locator('#pos-x').fill('9');
+  await page.locator('#pos-y').fill('6');
+
+  // Mirror the whole formation: x -> stageWidth(12) - x.
+  await page.getByLabel('Stage canvas').click({ position: { x: 12, y: 12 } }); // deselect -> formation panel
+  await page.getByRole('button', { name: 'Mirror left–right' }).click();
+  let state = await readDoc(page);
+  const fid = state.formations[0]?.id ?? '';
+  const p1 = state.performers[0]?.id ?? '';
+  const p2 = state.performers[1]?.id ?? '';
+  expect(Math.abs((state.positions[fid]?.[p1]?.x ?? 0) - 9)).toBeLessThan(0.05); // 12 - 3
+  expect(Math.abs((state.positions[fid]?.[p2]?.x ?? 0) - 3)).toBeLessThan(0.05); // 12 - 9
+
+  // Select both, align to a row -> equal y.
+  await page.getByText('Dancer 1').first().click();
+  await page.getByText('Dancer 2').first().click({ modifiers: ['Shift'] });
+  await page.getByRole('button', { name: 'Align row' }).click();
+  state = await readDoc(page);
+  expect(
+    Math.abs((state.positions[fid]?.[p1]?.y ?? 0) - (state.positions[fid]?.[p2]?.y ?? 1)),
+  ).toBeLessThan(0.05);
+});
+
 test('playback without audio advances and pauses', async ({ page }) => {
   await page.getByRole('button', { name: 'Play' }).click();
   await page.waitForTimeout(700);

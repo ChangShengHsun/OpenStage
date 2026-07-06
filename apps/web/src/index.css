@@ -206,9 +206,14 @@ body {
   gap: 3px;
 }
 
-.field label {
+.field label,
+.field-label {
   font-size: 11px;
   color: var(--ink-dim);
+}
+
+.field-label {
+  display: block;
 }
 
 input[type='text'],

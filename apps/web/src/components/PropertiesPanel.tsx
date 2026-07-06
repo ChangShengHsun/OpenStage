@@ -30,12 +30,7 @@ function PerformerSection(): ReactElement | null {
   const performer = performers.find((p) => p.id === performerId);
   if (performer === undefined) return null;
   if (selectedPerformerIds.length > 1) {
-    return (
-      <>
-        <div className="panel-title">{t.performer.titleMany}</div>
-        <p className="empty-note">{t.performer.multiSelected(selectedPerformerIds.length)}</p>
-      </>
-    );
+    return <MultiSelectSection count={selectedPerformerIds.length} />;
   }
   const pos = positions[selectedFormationId]?.[performerId];
 
@@ -141,6 +136,70 @@ function PerformerSection(): ReactElement | null {
   );
 }
 
+function MultiSelectSection({ count }: { count: number }): ReactElement {
+  const t = useT();
+  const swapSelected = useEditor((s) => s.swapSelected);
+  const alignSelected = useEditor((s) => s.alignSelected);
+  const distributeSelected = useEditor((s) => s.distributeSelected);
+
+  return (
+    <>
+      <div className="panel-title">{t.performer.titleMany}</div>
+      <div className="panel-section">
+        <p className="empty-note">{t.performer.multiSelected(count)}</p>
+        <span className="field-label">{t.performer.tools}</span>
+        {count === 2 && (
+          <button type="button" className="btn" title={t.performer.swapTitle} onClick={swapSelected}>
+            {t.performer.swap}
+          </button>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.alignRowTitle}
+            onClick={() => alignSelected('row')}
+          >
+            {t.performer.alignRow}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.alignColTitle}
+            onClick={() => alignSelected('col')}
+          >
+            {t.performer.alignCol}
+          </button>
+        </div>
+        {count >= 3 && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="btn"
+              style={{ flex: 1 }}
+              title={t.performer.distributeXTitle}
+              onClick={() => distributeSelected('x')}
+            >
+              {t.performer.distributeX}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              style={{ flex: 1 }}
+              title={t.performer.distributeYTitle}
+              onClick={() => distributeSelected('y')}
+            >
+              {t.performer.distributeY}
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function FormationSection(): ReactElement | null {
   const t = useT();
   const formations = useEditor((s) => s.formations);
@@ -151,6 +210,7 @@ function FormationSection(): ReactElement | null {
   const moveFormation = useEditor((s) => s.moveFormation);
   const applyTemplate = useEditor((s) => s.applyTemplate);
   const untangleFromPrevious = useEditor((s) => s.untangleFromPrevious);
+  const mirrorFormation = useEditor((s) => s.mirrorFormation);
   const hasPerformers = useEditor((s) => s.performers.length > 0);
   const [templateKind, setTemplateKind] = useState<TemplateKind>('line');
 
@@ -258,6 +318,15 @@ function FormationSection(): ReactElement | null {
           onClick={untangleFromPrevious}
         >
           {t.formation.untangle}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={!hasPerformers}
+          title={t.formation.mirrorTitle}
+          onClick={mirrorFormation}
+        >
+          {t.formation.mirror}
         </button>
         <button
           type="button"
