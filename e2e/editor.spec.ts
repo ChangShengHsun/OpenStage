@@ -420,6 +420,17 @@ test('3D preview toggles on and back off', async ({ page }) => {
   await expect(page.getByRole('button', { name: '3D', exact: true })).toBeVisible();
 });
 
+test('3D camera presets are present and reframe without crashing', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByRole('button', { name: '3D', exact: true }).click();
+  await expect(page.locator('.stage-area canvas')).toBeVisible({ timeout: 15_000 });
+  for (const name of ['Overhead', 'Side', 'Audience']) {
+    await page.getByRole('button', { name, exact: true }).click();
+  }
+  // Still rendering after the camera moves.
+  await expect(page.locator('.stage-area canvas')).toBeVisible();
+});
+
 test('PDF export downloads a file', async ({ page }) => {
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export PDF' }).click();

@@ -129,6 +129,10 @@ export const en = {
     loading3d: 'Loading 3D preview…',
     to3dTitle: '3D preview (view only)',
     to2dTitle: 'Back to the 2D editor',
+    cameraLabel: 'Camera view',
+    camAudience: 'Audience',
+    camOverhead: 'Overhead',
+    camSide: 'Side',
     audioFileAria: 'Audio file',
   },
 

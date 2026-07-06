@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -6,6 +6,7 @@ import type { PerspectiveCamera } from 'three';
 import { useEditor } from '../state/store';
 import { posesAtTime } from '../state/interpolate';
 import type { StagePose } from '../state/interpolate';
+import { useT } from '../i18n';
 
 /**
  * 3D preview — generated live from the 2D coordinates, not an editing
@@ -13,16 +14,47 @@ import type { StagePose } from '../state/interpolate';
  * becomes +z, height is y. rotation 0 = facing the audience (+z).
  */
 
-function Controls({ targetZ }: { targetZ: number }): null {
+type CameraPreset = 'audience' | 'overhead' | 'side';
+
+interface CamState {
+  kind: CameraPreset;
+  /** Bumped on every click so re-picking the same preset re-frames the view. */
+  nonce: number;
+}
+
+/** Camera position + look-at for a preset, in three world units (stage centered at origin). */
+function presetCamera(
+  kind: CameraPreset,
+  w: number,
+  h: number,
+): { pos: [number, number, number]; target: [number, number, number] } {
+  switch (kind) {
+    case 'overhead':
+      return { pos: [0, Math.max(w, h) * 1.4 + 6, 0.001], target: [0, 0, 0] };
+    case 'side':
+      return { pos: [-(w * 1.1 + 4), h * 0.5 + 2, 0], target: [0, 0, 0] };
+    case 'audience':
+      return { pos: [0, h * 0.6 + 2, h * 1.1 + 4], target: [0, 0, 0] };
+  }
+}
+
+function Controls({ cam, w, h }: { cam: CamState; w: number; h: number }): null {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   if (controlsRef.current === null) {
     const controls = new OrbitControls(camera as PerspectiveCamera, gl.domElement);
-    controls.target.set(0, 0, targetZ);
     controls.maxPolarAngle = Math.PI / 2.05; // don't go under the floor
-    controls.update();
     controlsRef.current = controls;
   }
+  // Snap to the chosen preset (also runs on mount for the default framing).
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (controls === null) return;
+    const { pos, target } = presetCamera(cam.kind, w, h);
+    camera.position.set(pos[0], pos[1], pos[2]);
+    controls.target.set(target[0], target[1], target[2]);
+    controls.update();
+  }, [cam.nonce, cam.kind, camera, w, h]);
   useFrame(() => controlsRef.current?.update());
   return null;
 }
@@ -48,6 +80,7 @@ function Performer3D({ pose, color }: { pose: StagePose; color: string }): React
 }
 
 export default function Stage3D(): ReactElement {
+  const t = useT();
   const performance = useEditor((s) => s.performance);
   const performers = useEditor((s) => s.performers);
   const formations = useEditor((s) => s.formations);
@@ -55,6 +88,8 @@ export default function Stage3D(): ReactElement {
   const selectedFormationId = useEditor((s) => s.selectedFormationId);
   const isPlaying = useEditor((s) => s.isPlaying);
   const playheadMs = useEditor((s) => s.playheadMs);
+  const [cam, setCam] = useState<CamState>({ kind: 'audience', nonce: 0 });
+  const pickCam = (kind: CameraPreset): void => setCam((c) => ({ kind, nonce: c.nonce + 1 }));
 
   const { stageWidth: w, stageHeight: h } = performance;
 
@@ -69,12 +104,24 @@ export default function Stage3D(): ReactElement {
   }, [isPlaying, playheadMs, formations, positions, selectedFormationId]);
 
   return (
-    <Canvas
-      shadows
-      camera={{ position: [0, h * 0.9 + 3, h * 1.1 + 4], fov: 50 }}
-      style={{ position: 'absolute', inset: 0, background: '#191512' }}
-    >
-      <Controls targetZ={0} />
+    <>
+      <div className="cam-presets" role="group" aria-label={t.stage.cameraLabel}>
+        <button type="button" className="btn" onClick={() => pickCam('audience')}>
+          {t.stage.camAudience}
+        </button>
+        <button type="button" className="btn" onClick={() => pickCam('overhead')}>
+          {t.stage.camOverhead}
+        </button>
+        <button type="button" className="btn" onClick={() => pickCam('side')}>
+          {t.stage.camSide}
+        </button>
+      </div>
+      <Canvas
+        shadows
+        camera={{ position: [0, h * 0.9 + 3, h * 1.1 + 4], fov: 50 }}
+        style={{ position: 'absolute', inset: 0, background: '#191512' }}
+      >
+        <Controls cam={cam} w={w} h={h} />
       <ambientLight intensity={0.55} />
       {/* the tungsten wash from above-front */}
       <directionalLight position={[2, 10, 8]} intensity={1.2} color="#e8c896" castShadow />
@@ -102,6 +149,7 @@ export default function Stage3D(): ReactElement {
           return <Performer3D key={p.id} pose={pose} color={p.color} />;
         })}
       </group>
-    </Canvas>
+      </Canvas>
+    </>
   );
 }

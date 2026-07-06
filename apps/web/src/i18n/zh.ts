@@ -128,6 +128,10 @@ export const zh: Messages = {
     loading3d: '正在載入 3D 預覽…',
     to3dTitle: '3D 預覽（僅檢視）',
     to2dTitle: '返回 2D 編輯器',
+    cameraLabel: '鏡頭視角',
+    camAudience: '觀眾席',
+    camOverhead: '俯視',
+    camSide: '側面',
     audioFileAria: '音訊檔案',
   },
 

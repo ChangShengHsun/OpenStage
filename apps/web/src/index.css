@@ -386,6 +386,15 @@ input[type='color'] {
   color: var(--danger);
 }
 
+.cam-presets {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+}
+
 /* ---- 2D/3D toggle ------------------------------------------------------ */
 
 .view-toggle {
