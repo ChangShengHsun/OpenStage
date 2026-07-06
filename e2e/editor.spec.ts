@@ -304,6 +304,15 @@ test('version history: snapshot, mutate, restore', async ({ page }) => {
   expect((await readDoc(page)).performers).toHaveLength(3);
 });
 
+test('3D preview toggles on and back off', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByRole('button', { name: '3D', exact: true }).click();
+  // three.js canvas appears (lazy chunk)
+  await expect(page.locator('.stage-area canvas')).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: '2D', exact: true }).click();
+  await expect(page.getByRole('button', { name: '3D', exact: true })).toBeVisible();
+});
+
 test('PDF export downloads a file', async ({ page }) => {
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export PDF' }).click();

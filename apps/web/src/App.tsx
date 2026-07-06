@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { startCollab } from './collab/collab';
 import { isViewMode } from './state/viewMode';
+
+// three.js is heavy — load it only when someone opens the 3D preview.
+const Stage3D = lazy(() => import('./components/Stage3D'));
 import { TopBar } from './components/TopBar';
 import { CastPanel } from './components/CastPanel';
 import { StageCanvas } from './components/StageCanvas';
@@ -17,6 +20,7 @@ export function App(): ReactElement {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [audioVersion, setAudioVersion] = useState(0);
+  const [show3d, setShow3d] = useState(false);
 
   useEffect(() => {
     void loadPersistedAudio().then((loaded) => {
@@ -37,7 +41,21 @@ export function App(): ReactElement {
       />
       <CastPanel />
       <main className="stage-area" aria-label="Stage canvas">
-        <StageCanvas />
+        {show3d ? (
+          <Suspense fallback={<p className="empty-note">Loading 3D preview…</p>}>
+            <Stage3D />
+          </Suspense>
+        ) : (
+          <StageCanvas />
+        )}
+        <button
+          type="button"
+          className="btn view-toggle"
+          onClick={() => setShow3d((v) => !v)}
+          title={show3d ? 'Back to the 2D editor' : '3D preview (view only)'}
+        >
+          {show3d ? '2D' : '3D'}
+        </button>
       </main>
       <PropertiesPanel />
       <Timeline
