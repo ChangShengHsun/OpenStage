@@ -134,6 +134,9 @@ export const en = {
     camAudience: 'Audience',
     camOverhead: 'Overhead',
     camSide: 'Side',
+    followLabel: 'Follow a performer',
+    followNone: 'Free camera',
+    followPrefix: 'Follow',
     audioFileAria: 'Audio file',
   },
 

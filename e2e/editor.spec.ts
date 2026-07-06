@@ -427,6 +427,10 @@ test('3D camera presets are present and reframe without crashing', async ({ page
   for (const name of ['Overhead', 'Side', 'Audience']) {
     await page.getByRole('button', { name, exact: true }).click();
   }
+  // Follow a performer, then back to a free preset.
+  await page.getByLabel('Follow a performer').selectOption({ label: 'Follow Dancer 1' });
+  await page.getByRole('button', { name: 'Overhead', exact: true }).click();
+  await expect(page.getByLabel('Follow a performer')).toHaveValue('');
   // Still rendering after the camera moves.
   await expect(page.locator('.stage-area canvas')).toBeVisible();
 });

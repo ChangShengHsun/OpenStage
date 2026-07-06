@@ -38,7 +38,17 @@ function presetCamera(
   }
 }
 
-function Controls({ cam, w, h }: { cam: CamState; w: number; h: number }): null {
+function Controls({
+  cam,
+  w,
+  h,
+  followPose,
+}: {
+  cam: CamState;
+  w: number;
+  h: number;
+  followPose: StagePose | null;
+}): null {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControls | null>(null);
   if (controlsRef.current === null) {
@@ -49,13 +59,30 @@ function Controls({ cam, w, h }: { cam: CamState; w: number; h: number }): null 
   // Snap to the chosen preset (also runs on mount for the default framing).
   useEffect(() => {
     const controls = controlsRef.current;
-    if (controls === null) return;
+    if (controls === null || followPose !== null) return;
     const { pos, target } = presetCamera(cam.kind, w, h);
     camera.position.set(pos[0], pos[1], pos[2]);
     controls.target.set(target[0], target[1], target[2]);
     controls.update();
-  }, [cam.nonce, cam.kind, camera, w, h]);
-  useFrame(() => controlsRef.current?.update());
+  }, [cam.nonce, cam.kind, camera, w, h, followPose]);
+
+  useFrame(() => {
+    const controls = controlsRef.current;
+    if (controls === null) return;
+    if (followPose !== null) {
+      // Chase cam: behind (upstage of) the dancer and above, looking downstage
+      // past them toward the audience. World pos accounts for the stage-center
+      // group offset. Orbit is off while following.
+      const px = followPose.x - w / 2;
+      const pz = followPose.y - h / 2;
+      controls.enabled = false;
+      camera.position.set(px, 2.4, pz - 3);
+      camera.lookAt(px, 1, pz + 3);
+    } else {
+      controls.enabled = true;
+      controls.update();
+    }
+  });
   return null;
 }
 
@@ -89,7 +116,11 @@ export default function Stage3D(): ReactElement {
   const isPlaying = useEditor((s) => s.isPlaying);
   const playheadMs = useEditor((s) => s.playheadMs);
   const [cam, setCam] = useState<CamState>({ kind: 'audience', nonce: 0 });
-  const pickCam = (kind: CameraPreset): void => setCam((c) => ({ kind, nonce: c.nonce + 1 }));
+  const [followId, setFollowId] = useState<string | null>(null);
+  const pickCam = (kind: CameraPreset): void => {
+    setFollowId(null); // picking a fixed view leaves follow mode
+    setCam((c) => ({ kind, nonce: c.nonce + 1 }));
+  };
 
   const { stageWidth: w, stageHeight: h } = performance;
 
@@ -115,13 +146,31 @@ export default function Stage3D(): ReactElement {
         <button type="button" className="btn" onClick={() => pickCam('side')}>
           {t.stage.camSide}
         </button>
+        <select
+          aria-label={t.stage.followLabel}
+          value={followId ?? ''}
+          style={{ width: 128 }}
+          onChange={(e) => setFollowId(e.target.value === '' ? null : e.target.value)}
+        >
+          <option value="">{t.stage.followNone}</option>
+          {performers.map((p) => (
+            <option key={p.id} value={p.id}>
+              {t.stage.followPrefix} {p.name}
+            </option>
+          ))}
+        </select>
       </div>
       <Canvas
         shadows
         camera={{ position: [0, h * 0.9 + 3, h * 1.1 + 4], fov: 50 }}
         style={{ position: 'absolute', inset: 0, background: '#191512' }}
       >
-        <Controls cam={cam} w={w} h={h} />
+        <Controls
+          cam={cam}
+          w={w}
+          h={h}
+          followPose={followId !== null ? (poses.get(followId) ?? null) : null}
+        />
       <ambientLight intensity={0.55} />
       {/* the tungsten wash from above-front */}
       <directionalLight position={[2, 10, 8]} intensity={1.2} color="#e8c896" castShadow />

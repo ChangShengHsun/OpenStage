@@ -133,6 +133,9 @@ export const zh: Messages = {
     camAudience: '觀眾席',
     camOverhead: '俯視',
     camSide: '側面',
+    followLabel: '跟隨某位舞者',
+    followNone: '自由鏡頭',
+    followPrefix: '跟隨',
     audioFileAria: '音訊檔案',
   },
 
