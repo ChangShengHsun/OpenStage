@@ -13,6 +13,9 @@ interface TopBarProps {
   onExportPdf: () => void;
 }
 
+/** 0.5×–2.0× in 0.1 steps ((5+i)/10 avoids float drift like 0.7000…01). */
+const PLAYBACK_SPEEDS = Array.from({ length: 16 }, (_, i) => (5 + i) / 10);
+
 export function TopBar({ onTogglePlay, onExportPdf }: TopBarProps): ReactElement {
   const t = useT();
   const locale = useLocaleStore((s) => s.locale);
@@ -22,6 +25,8 @@ export function TopBar({ onTogglePlay, onExportPdf }: TopBarProps): ReactElement
   const setTitle = useEditor((s) => s.setTitle);
   const isPlaying = useEditor((s) => s.isPlaying);
   const playheadMs = useEditor((s) => s.playheadMs);
+  const playbackRate = useEditor((s) => s.playbackRate);
+  const setPlaybackRate = useEditor((s) => s.setPlaybackRate);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
 
@@ -164,6 +169,19 @@ export function TopBar({ onTogglePlay, onExportPdf }: TopBarProps): ReactElement
         {formatTimecode(playheadMs)}
         {bpm !== null ? `  ${formatEightCount(playheadMs, bpm)}` : ''}
       </span>
+      <select
+        aria-label={t.topbar.playbackSpeedAria}
+        title={t.topbar.playbackSpeedAria}
+        value={playbackRate.toFixed(1)}
+        style={{ width: 66 }}
+        onChange={(e) => setPlaybackRate(Number(e.target.value))}
+      >
+        {PLAYBACK_SPEEDS.map((rate) => (
+          <option key={rate} value={rate.toFixed(1)}>
+            {rate.toFixed(1)}×
+          </option>
+        ))}
+      </select>
       <button type="button" className="btn btn-primary" onClick={onTogglePlay}>
         {isPlaying ? t.topbar.pause : t.topbar.play}
       </button>

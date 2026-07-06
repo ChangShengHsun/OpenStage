@@ -14,9 +14,13 @@ import { useAppHotkeys } from './hooks/useAppHotkeys';
 import { usePlayback } from './hooks/usePlayback';
 import { clearAudio, loadPersistedAudio, setAudioBlob } from './audio/audioPlayer';
 import { useT } from './i18n';
+import { useLayout } from './state/layout';
+import { PanelResizer } from './components/PanelResizer';
 
 export function App(): ReactElement {
   const t = useT();
+  const castWidth = useLayout((s) => s.castWidth);
+  const propsWidth = useLayout((s) => s.propsWidth);
   const { togglePlay } = usePlayback();
   useAppHotkeys(togglePlay);
 
@@ -33,7 +37,11 @@ export function App(): ReactElement {
   }, []);
 
   return (
-    <div className={`app${isViewMode ? ' view-mode' : ''}`}>
+    <div
+      className={`app${isViewMode ? ' view-mode' : ''}`}
+      // View mode's 0/1fr/0 columns come from CSS; don't override them.
+      style={isViewMode ? undefined : { gridTemplateColumns: `${castWidth}px 1fr ${propsWidth}px` }}
+    >
       <TopBar
         onTogglePlay={togglePlay}
         onExportPdf={() => {
@@ -67,6 +75,12 @@ export function App(): ReactElement {
           void clearAudio().then(() => setAudioVersion((v) => v + 1));
         }}
       />
+      {!isViewMode && (
+        <>
+          <PanelResizer side="cast" />
+          <PanelResizer side="props" />
+        </>
+      )}
       <input
         ref={fileInputRef}
         type="file"

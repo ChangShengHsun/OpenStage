@@ -35,6 +35,7 @@ export const en = {
     viewLinkTitle: 'Copy a view-only link (hides editing UI — not access control)',
     viewLinkCopied: 'View link copied',
     playheadAria: 'Playhead time',
+    playbackSpeedAria: 'Playback speed',
     play: 'Play',
     pause: 'Pause',
     exportPdf: 'Export PDF',
@@ -157,5 +158,10 @@ export const en = {
   videoExport: {
     errNothingToExport: 'Nothing to export — add a formation first',
     errUnsupported: 'This browser cannot record video',
+  },
+
+  layout: {
+    resizeCast: 'Resize cast panel',
+    resizeProps: 'Resize properties panel',
   },
 };

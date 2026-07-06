@@ -47,12 +47,31 @@ body {
 .app {
   display: grid;
   grid-template-rows: 46px 1fr 210px;
+  /* Columns are overridden inline by App.tsx with the draggable widths;
+     these are the defaults (keep equal to state/layout.ts DEFAULT_*). */
   grid-template-columns: 216px 1fr 248px;
   grid-template-areas:
     'topbar topbar topbar'
     'cast stage props'
     'timeline timeline timeline';
   height: 100%;
+  position: relative; /* anchors the .panel-resize overlays */
+}
+
+/* Sidebar drag handles; top/bottom match grid-template-rows above. */
+.panel-resize {
+  position: absolute;
+  top: 46px;
+  bottom: 210px;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 20;
+  touch-action: none;
+}
+
+.panel-resize:hover,
+.panel-resize:active {
+  background: rgba(232, 168, 76, 0.3);
 }
 
 .topbar {

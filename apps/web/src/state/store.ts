@@ -37,6 +37,8 @@ interface EditorState extends DocState {
   selectedPerformerIds: string[];
   playheadMs: number;
   isPlaying: boolean;
+  /** Session-only playback speed multiplier, 0.5–2 (not persisted). */
+  playbackRate: number;
 
   setTitle: (title: string) => void;
   setStageSize: (width: number, height: number) => void;
@@ -89,6 +91,7 @@ interface EditorState extends DocState {
 
   setPlayhead: (ms: number) => void;
   setIsPlaying: (playing: boolean) => void;
+  setPlaybackRate: (rate: number) => void;
 
   /** Replace the whole document (version-history restore); undoable. */
   restoreDoc: (doc: DocState) => void;
@@ -200,6 +203,7 @@ export const useEditor = create<EditorState>()(
         selectedPerformerIds: [],
         playheadMs: 0,
         isPlaying: false,
+        playbackRate: 1,
 
         setTitle: (title) => mutateDoc((s) => ({ performance: { ...s.performance, title } })),
 
@@ -613,6 +617,7 @@ export const useEditor = create<EditorState>()(
 
         setPlayhead: (ms) => set({ playheadMs: Math.max(0, ms) }),
         setIsPlaying: (playing) => set({ isPlaying: playing }),
+        setPlaybackRate: (rate) => set({ playbackRate: Math.min(2, Math.max(0.5, rate)) }),
 
         restoreDoc: (doc) =>
           mutateDoc(() => ({

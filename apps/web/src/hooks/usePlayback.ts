@@ -24,13 +24,22 @@ export function usePlayback(): { togglePlay: () => void } {
     const startState = useEditor.getState();
     if (audio !== null) {
       audio.currentTime = startState.playheadMs / 1000;
+      audio.playbackRate = startState.playbackRate;
       void audio.play();
     }
     let lastTick = window.performance.now();
 
     const tick = (now: number): void => {
       const s = useEditor.getState();
-      const t = audio !== null ? audio.currentTime * 1000 : s.playheadMs + (now - lastTick);
+      // With audio, the audio element is the clock and carries the rate
+      // (kept in sync here so mid-playback speed changes take effect).
+      if (audio !== null && audio.playbackRate !== s.playbackRate) {
+        audio.playbackRate = s.playbackRate;
+      }
+      const t =
+        audio !== null
+          ? audio.currentTime * 1000
+          : s.playheadMs + (now - lastTick) * s.playbackRate;
       lastTick = now;
       if (t >= endMs || (audio !== null && audio.ended)) {
         s.setPlayhead(endMs);

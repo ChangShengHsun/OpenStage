@@ -126,6 +126,38 @@ test('playback without audio advances and pauses', async ({ page }) => {
   expect(timecode).not.toContain('0:00.0');
 });
 
+test('playback speed control scales how fast the playhead advances', async ({ page }) => {
+  await page.getByLabel('Playback speed').selectOption('2.0');
+  await page.getByRole('button', { name: 'Play' }).click();
+  await page.waitForTimeout(1200);
+  await page.getByRole('button', { name: 'Pause' }).click();
+
+  const text = (await page.getByLabel('Playhead time').textContent()) ?? '';
+  const parts = /(\d+):(\d+)\.(\d)/.exec(text);
+  const seconds = Number(parts?.[1] ?? 0) * 60 + Number(parts?.[2] ?? 0) + Number(parts?.[3] ?? 0) / 10;
+  // 1.2s of wall clock at 2.0x ≈ 2.4s of show time (loose band for CI jitter).
+  expect(seconds).toBeGreaterThanOrEqual(1.8);
+  expect(seconds).toBeLessThanOrEqual(3.5);
+});
+
+test('sidebars resize by dragging and the width persists', async ({ page }) => {
+  const cast = page.locator('.cast-panel');
+  expect(Math.round((await cast.boundingBox())?.width ?? 0)).toBe(216);
+
+  const handle = page.getByLabel('Resize cast panel');
+  const box = await handle.boundingBox();
+  const grabY = (box?.y ?? 0) + 200;
+  await page.mouse.move((box?.x ?? 0) + 3, grabY);
+  await page.mouse.down();
+  await page.mouse.move(320, grabY, { steps: 5 });
+  await page.mouse.up();
+  expect(Math.abs(((await cast.boundingBox())?.width ?? 0) - 320)).toBeLessThanOrEqual(8);
+
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  expect(Math.abs(((await page.locator('.cast-panel').boundingBox())?.width ?? 0) - 320)).toBeLessThanOrEqual(8);
+});
+
 test('audio upload, beat markers, waveform persistence', async ({ page }) => {
   await page.setInputFiles('input[aria-label="Audio file"]', {
     name: 'tone.wav',
@@ -338,14 +370,18 @@ test('tap tempo calibrates BPM from clicks', async ({ page }) => {
 });
 
 test('language switcher persists across reloads', async ({ page }) => {
-  // The only select in the header is the language picker (label text is
-  // locale-dependent, so target by structure).
-  const picker = page.locator('header select');
-  await expect(picker).toHaveValue('en');
-  await picker.selectOption('zh');
-  await expect(picker).toHaveValue('zh');
+  // Label text is locale-dependent, so find the picker by its zh option
+  // (the header also holds the playback-speed select).
+  const pickerSelector = page.locator('header select', {
+    has: page.locator('option[value="zh"]'),
+  });
+  await expect(pickerSelector).toHaveValue('en');
+  await pickerSelector.selectOption('zh');
+  await expect(pickerSelector).toHaveValue('zh');
   await page.reload();
-  await expect(page.locator('header select')).toHaveValue('zh');
+  await expect(
+    page.locator('header select', { has: page.locator('option[value="zh"]') }),
+  ).toHaveValue('zh');
 });
 
 test('video export records the show and downloads a movie', async ({ page }) => {

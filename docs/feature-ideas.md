@@ -103,6 +103,6 @@ Ivan-requested, queued: 3D video export (M, near-term) and stage
 lighting + cue sheet (L, needs a staged plan first).
 
 ## TODO
-1. allowing different playspeed(0.5x~2x 0.1 as interval)
-2. allow sidebars to adjust its width just like what we can do in vscode
+1. ~~allowing different playspeed(0.5x~2x 0.1 as interval)~~ ✅ done 2026-07-06
+2. ~~allow sidebars to adjust its width just like what we can do in vscode~~ ✅ done 2026-07-06
 3. 

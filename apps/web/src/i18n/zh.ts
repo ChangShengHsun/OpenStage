@@ -36,6 +36,7 @@ export const zh: Messages = {
     viewLinkTitle: '複製唯讀連結（隱藏編輯介面，但不是權限控管）',
     viewLinkCopied: '已複製檢視連結',
     playheadAria: '播放頭時間',
+    playbackSpeedAria: '播放速度',
     play: '播放',
     pause: '暫停',
     exportPdf: '匯出 PDF',
@@ -156,5 +157,10 @@ export const zh: Messages = {
   videoExport: {
     errNothingToExport: '沒有可匯出的內容 — 請先新增一個隊形',
     errUnsupported: '這個瀏覽器無法錄製影片',
+  },
+
+  layout: {
+    resizeCast: '調整演出者面板寬度',
+    resizeProps: '調整屬性面板寬度',
   },
 };
