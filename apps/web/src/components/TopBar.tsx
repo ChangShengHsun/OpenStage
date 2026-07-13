@@ -3,7 +3,13 @@ import type { ReactElement } from 'react';
 import { useEditor } from '../state/store';
 import { formatEightCount, formatTimecode } from '../state/interpolate';
 import { getLocalUser, setLocalUserName } from '../state/user';
-import { collabRoom, isCollabActive, setAwarenessUser } from '../collab/collab';
+import {
+  collabRoom,
+  followedPeerId,
+  isCollabActive,
+  setAwarenessUser,
+  setFollowPeer,
+} from '../collab/collab';
 import { usePeers } from '../hooks/usePeers';
 import { isViewMode } from '../state/viewMode';
 import { useLocaleStore, useT } from '../i18n';
@@ -68,14 +74,21 @@ export function TopBar(): ReactElement {
             style={{ background: getLocalUser().color }}
             title={t.topbar.youTag(getLocalUser().name)}
           />
-          {peers.map((p) => (
-            <span
-              key={p.clientId}
-              className="presence-dot"
-              style={{ background: p.color }}
-              title={p.name}
-            />
-          ))}
+          {peers.map((p) => {
+            const following = followedPeerId() === p.clientId;
+            return (
+              <button
+                key={p.clientId}
+                type="button"
+                className={`presence-follow${following ? ' following' : ''}`}
+                title={following ? t.topbar.unfollow(p.name) : t.topbar.follow(p.name)}
+                aria-pressed={following}
+                onClick={() => setFollowPeer(following ? null : p.clientId)}
+              >
+                <span className="presence-dot" style={{ background: p.color }} />
+              </button>
+            );
+          })}
         </span>
       )}
       <input

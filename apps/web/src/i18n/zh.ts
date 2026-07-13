@@ -26,6 +26,8 @@ export const zh: Messages = {
     redo: '重做',
     redoTitle: '重做 (Ctrl+Shift+Z)',
     peopleInSession: (n: number): string => `協作中共 ${n} 人`,
+    follow: (name: string): string => `跟隨 ${name}（同步對方的播放頭與隊形）`,
+    unfollow: (name: string): string => `停止跟隨 ${name}`,
     youTag: (name: string): string => `${name}（你）`,
     displayNameAria: '你的顯示名稱',
     displayNameTitle: '你在留言與即時協作中顯示的名稱',

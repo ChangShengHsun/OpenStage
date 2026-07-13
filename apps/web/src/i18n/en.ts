@@ -25,6 +25,8 @@ export const en = {
     redo: 'Redo',
     redoTitle: 'Redo (Ctrl+Shift+Z)',
     peopleInSession: (n: number): string => `${n} people in session`,
+    follow: (name: string): string => `Follow ${name} (mirror their playhead and formation)`,
+    unfollow: (name: string): string => `Stop following ${name}`,
     youTag: (name: string): string => `${name} (you)`,
     displayNameAria: 'Your display name',
     displayNameTitle: 'Your name on comments and live sessions',

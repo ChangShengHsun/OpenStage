@@ -426,11 +426,25 @@ input[type='color'] {
 }
 
 .presence-dot {
+  display: block;
   width: 12px;
   height: 12px;
   border-radius: 50%;
   border: 1.5px solid var(--house);
   box-shadow: 0 0 0 1px var(--panel-edge);
+}
+
+/* Peer dot as a follow toggle: bare button, amber ring while following. */
+.presence-follow {
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.presence-follow.following {
+  box-shadow: 0 0 0 2px var(--tungsten);
 }
 
 /* ---- Comments -------------------------------------------------------- */

@@ -10,6 +10,7 @@ import type {
 import { undoOverride, useEditor } from '../state/store';
 import type { DocState, PositionMap } from '../state/store';
 import { getLocalUser } from '../state/user';
+import { getAudioElement } from '../audio/audioPlayer';
 
 /**
  * Realtime collaboration: mirrors the Zustand doc into a Y.Doc synced over
@@ -34,6 +35,8 @@ export interface RemotePeer {
   /** Stage-meter cursor, null when the pointer is off the stage. */
   cursor: { x: number; y: number } | null;
   selectedPerformerIds: string[];
+  /** The peer's playhead + selected formation (for follow mode). */
+  view: { playheadMs: number; formationId: string } | null;
 }
 
 interface CollabSession {
@@ -159,17 +162,59 @@ function refreshPeers(provider: WebsocketProvider): void {
       { name?: string; color?: string } | undefined;
     const cursor = (state as Record<string, unknown>)['cursor'] as RemotePeer['cursor'] | undefined;
     const selection = (state as Record<string, unknown>)['selection'] as string[] | undefined;
+    const view = (state as Record<string, unknown>)['view'] as RemotePeer['view'] | undefined;
     peers.push({
       clientId,
       name: user?.name ?? 'Guest',
       color: user?.color ?? '#9a8f82',
       cursor: cursor ?? null,
       selectedPerformerIds: selection ?? [],
+      view: view ?? null,
     });
   }
   cachedPeers = peers;
   peersVersion++;
   for (const listener of peersListeners) listener();
+  applyFollowedView();
+}
+
+// ---- Follow mode: mirror one peer's playhead + selected formation. -------
+
+let followedPeer: number | null = null;
+
+export function followedPeerId(): number | null {
+  return followedPeer;
+}
+
+/** Toggle following a peer (null = stop). Following applies their view live. */
+export function setFollowPeer(clientId: number | null): void {
+  followedPeer = clientId;
+  peersVersion++;
+  for (const listener of peersListeners) listener();
+  applyFollowedView();
+}
+
+function applyFollowedView(): void {
+  if (followedPeer === null) return;
+  const peer = cachedPeers.find((p) => p.clientId === followedPeer);
+  if (peer === undefined) {
+    // The peer left the session — stop following quietly.
+    followedPeer = null;
+    return;
+  }
+  const view = peer.view;
+  if (view === null) return;
+  const s = useEditor.getState();
+  if (view.formationId !== s.selectedFormationId && s.formations.some((f) => f.id === view.formationId)) {
+    s.selectFormation(view.formationId);
+  }
+  if (Math.abs(s.playheadMs - view.playheadMs) > 40) {
+    s.setPlayhead(view.playheadMs);
+    const audio = getAudioElement();
+    if (audio !== null && Math.abs(audio.currentTime * 1000 - view.playheadMs) > 250) {
+      audio.currentTime = view.playheadMs / 1000;
+    }
+  }
 }
 
 /** React 18 external-store contract: subscribe + versioned snapshot. */
@@ -227,12 +272,29 @@ export function startCollab(room: string): void {
 
   // Selection is shared so peers can see what you're working on.
   let lastSelection: string[] = [];
+  // View (playhead + formation) is shared for follow mode. The playhead
+  // changes every animation frame during playback, so coalesce sends:
+  // a trailing-edge timer always broadcasts the LATEST state.
+  let lastView = { playheadMs: -1, formationId: '' };
+  let viewTimer: number | null = null;
 
   const unsubscribeStore = useEditor.subscribe((s, prev) => {
     if (applyingRemote) return;
     if (s.selectedPerformerIds !== lastSelection) {
       lastSelection = s.selectedPerformerIds;
       provider.awareness.setLocalStateField('selection', s.selectedPerformerIds);
+    }
+    if (
+      (s.playheadMs !== lastView.playheadMs || s.selectedFormationId !== lastView.formationId) &&
+      viewTimer === null
+    ) {
+      viewTimer = window.setTimeout(() => {
+        viewTimer = null;
+        if (session === null) return; // fired after stopCollab
+        const current = useEditor.getState();
+        lastView = { playheadMs: current.playheadMs, formationId: current.selectedFormationId };
+        provider.awareness.setLocalStateField('view', lastView);
+      }, 120);
     }
     // Only push when some doc part actually changed (reference check).
     if (
@@ -276,6 +338,7 @@ export function startCollab(room: string): void {
 
 export function stopCollab(): void {
   if (session === null) return;
+  followedPeer = null;
   undoOverride.undo = null;
   undoOverride.redo = null;
   session.unsubscribeStore();

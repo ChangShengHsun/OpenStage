@@ -36,3 +36,44 @@ test('two clients collaborate in a room: doc sync, presence, comments', async ({
   await ctxA.close();
   await ctxB.close();
 });
+
+test('follow mode mirrors the peer playhead and formation', async ({ browser }) => {
+  const room = `e2e-follow-${Date.now()}`;
+  const url = `/?room=${room}`;
+
+  const ctxA = await browser.newContext();
+  const ctxB = await browser.newContext();
+  const pageA = await ctxA.newPage();
+  const pageB = await ctxB.newPage();
+
+  await pageA.goto(url);
+  await pageA.getByText('Add performer').waitFor();
+  await pageA.getByText('Add formation').click(); // F2 at 12s, selected on A
+
+  await pageB.goto(url);
+  await pageB.getByText('Add performer').waitFor();
+  await expect(pageB.getByRole('button', { name: /Formation 2/ })).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // B follows A (the only peer dot button).
+  await pageB.getByRole('button', { name: /^Follow / }).click();
+
+  // A selects Formation 2 and steps the playhead to exactly 15s.
+  await pageA.getByRole('button', { name: /Formation 2/ }).click();
+  await pageA.getByLabel('Playhead position').click({ position: { x: 1, y: 1 } }); // scrub to ~0
+  for (let i = 0; i < 3; i++) {
+    await pageA.getByLabel('Playhead position').press('Shift+ArrowRight'); // +5s each
+  }
+
+  // B's playhead and selected formation mirror A's.
+  await expect(pageB.getByLabel('Playhead time')).toContainText('0:15', { timeout: 10_000 });
+  await expect(pageB.getByRole('button', { name: /Formation 2/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+    { timeout: 10_000 },
+  );
+
+  await ctxA.close();
+  await ctxB.close();
+});
