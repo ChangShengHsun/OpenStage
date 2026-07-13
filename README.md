@@ -131,9 +131,9 @@ docker compose up -d  # postgres:5432, redis:6379, minio:9000/9001, api:3000, we
 | redis         | 6379      | cache + pub-sub                         |
 | minio         | 9000/9001 | S3-compatible object storage (+console) |
 
-> **Status note:** the Docker stack is written to spec but has **not yet been
-> integration-tested** (Docker unavailable on the dev machine at scaffold time).
-> The frontend MVP is fully tested standalone.
+> **Status note:** integration-tested 2026-07-13 — all six services come up,
+> migrations apply, `/api/health` responds. The API itself is still a skeleton
+> (health check only; auth/CRUD/media are roadmap V4).
 
 ## Development
 

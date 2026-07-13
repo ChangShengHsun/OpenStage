@@ -1,6 +1,5 @@
-# OpenStage full stack.
-# NOT YET INTEGRATION-TESTED — written to spec on a machine without Docker;
-# verify with `docker compose up` before first real use.
+# OpenStage full stack. Integration-tested 2026-07-13 (all services up,
+# migrations applied, /api/health ok).
 services:
   postgres:
     image: postgres:17-alpine
