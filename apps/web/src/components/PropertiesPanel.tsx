@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useEditor } from '../state/store';
 import type { TemplateKind } from '../state/templates';
+import { suggestFormations } from '../state/suggest';
+import type { Suggestion } from '../state/suggest';
 import { deleteSnapshot, listSnapshots, saveSnapshot } from '../state/history';
 import type { Snapshot } from '../state/history';
 import { CommentsSection } from './CommentsSection';
@@ -256,6 +258,32 @@ function MultiSelectSection({ count }: { count: number }): ReactElement {
   );
 }
 
+/** Tiny stage plan of one suggestion: the stage box plus one dot per spot. */
+function SuggestionPreview({ suggestion }: { suggestion: Suggestion }): ReactElement {
+  const stageWidth = useEditor((s) => s.performance.stageWidth);
+  const stageHeight = useEditor((s) => s.performance.stageHeight);
+  const W = 72;
+  const H = Math.round((W * stageHeight) / stageWidth);
+  return (
+    <svg
+      width={W}
+      height={H}
+      aria-hidden="true"
+      style={{ background: 'var(--house)', border: '1px solid var(--panel-edge)', flexShrink: 0 }}
+    >
+      {Object.values(suggestion.positions).map((spot, i) => (
+        <circle
+          key={i}
+          cx={(spot.x / stageWidth) * W}
+          cy={(spot.y / stageHeight) * H}
+          r={2}
+          fill="var(--tungsten)"
+        />
+      ))}
+    </svg>
+  );
+}
+
 function FormationSection(): ReactElement | null {
   const t = useT();
   const formations = useEditor((s) => s.formations);
@@ -268,9 +296,28 @@ function FormationSection(): ReactElement | null {
   const untangleFromPrevious = useEditor((s) => s.untangleFromPrevious);
   const mirrorFormation = useEditor((s) => s.mirrorFormation);
   const copyPositionsFrom = useEditor((s) => s.copyPositionsFrom);
+  const applySuggestedPositions = useEditor((s) => s.applySuggestedPositions);
   const hasPerformers = useEditor((s) => s.performers.length > 0);
   const [templateKind, setTemplateKind] = useState<TemplateKind>('line');
   const [copySourceId, setCopySourceId] = useState('');
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+
+  const onSuggest = (): void => {
+    // Read once on click — suggestions should not churn while dragging.
+    const s = useEditor.getState();
+    const ordered = byOrder(s.formations);
+    const index = ordered.findIndex((f) => f.id === s.selectedFormationId);
+    const previous = index > 0 ? ordered[index - 1] : undefined;
+    const previousSpots = previous !== undefined ? (s.positions[previous.id] ?? null) : null;
+    setSuggestions(
+      suggestFormations(
+        s.performers.map((p) => p.id),
+        previousSpots,
+        s.performance.stageWidth,
+        s.performance.stageHeight,
+      ),
+    );
+  };
 
   const formation = formations.find((f) => f.id === selectedFormationId);
   if (formation === undefined) return null;
@@ -386,6 +433,36 @@ function FormationSection(): ReactElement | null {
         >
           {t.formation.mirror}
         </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={!hasPerformers}
+          title={t.suggest.buttonTitle}
+          onClick={onSuggest}
+        >
+          {t.suggest.button}
+        </button>
+        {suggestions !== null && suggestions.length > 0 && (
+          <div className="field" aria-label={t.suggest.listAria}>
+            {suggestions.map((suggestion) => (
+              <div
+                key={suggestion.kind}
+                style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+              >
+                <SuggestionPreview suggestion={suggestion} />
+                <span style={{ flex: 1, fontSize: 12 }}>{t.suggest.kinds[suggestion.kind]}</span>
+                <button
+                  type="button"
+                  className="btn"
+                  title={t.suggest.applyTitle}
+                  onClick={() => applySuggestedPositions(suggestion.positions)}
+                >
+                  {t.suggest.apply}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="field">
           <label htmlFor="form-copy-from">{t.formation.copyFromLabel}</label>
           <div style={{ display: 'flex', gap: 8 }}>

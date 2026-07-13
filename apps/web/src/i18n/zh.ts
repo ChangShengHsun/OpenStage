@@ -141,6 +141,22 @@ export const zh: Messages = {
     deleteFormation: '刪除隊形',
   },
 
+  suggest: {
+    button: '建議隊形',
+    buttonTitle: '依「與上一個隊形的行走距離、間距、對稱性」評分，提出這個隊形的候選形狀',
+    listAria: '隊形建議',
+    apply: '套用',
+    applyTitle: '把所有舞者排成這個建議的形狀（可復原）',
+    kinds: {
+      line: '一字排',
+      v: 'V 字形',
+      circle: '圓形',
+      grid: '方陣',
+      twoRows: '前後兩排',
+      diagonal: '斜對角',
+    },
+  },
+
   stage: {
     title: '舞台',
     width: '寬度 (m)',

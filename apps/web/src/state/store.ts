@@ -73,6 +73,8 @@ interface EditorState extends DocState {
   pushHistory: () => void;
   /** Arrange the selected formation's performers into a template shape. */
   applyTemplate: (kind: TemplateKind) => void;
+  /** Write suggested per-performer spots into the selected formation. */
+  applySuggestedPositions: (spots: Record<string, { x: number; y: number }>) => void;
   /**
    * Reassign the selected formation's spots among performers so total travel
    * from the previous formation is minimal (Hungarian matching).
@@ -561,6 +563,19 @@ export const useEditor = create<EditorState>()(
               if (spot === undefined || existing === undefined) return;
               updated[p.id] = { ...existing, x: spot.x, y: spot.y };
             });
+            return { positions: { ...s.positions, [fid]: updated } };
+          }),
+
+        applySuggestedPositions: (spots) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined) return {};
+            const updated = { ...current };
+            for (const [pid, spot] of Object.entries(spots)) {
+              const existing = updated[pid];
+              if (existing !== undefined) updated[pid] = { ...existing, x: spot.x, y: spot.y };
+            }
             return { positions: { ...s.positions, [fid]: updated } };
           }),
 

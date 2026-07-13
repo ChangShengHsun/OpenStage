@@ -688,6 +688,31 @@ test('audience side is selectable and persists in the doc', async ({ page }) => 
   expect((doc.performance as { audienceAt?: string }).audienceAt).toBe('top');
 });
 
+test('formation suggestions: apply changes positions, undo restores', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  // Deselect so the Formation panel (with Suggest) is visible.
+  await page.getByLabel('Stage canvas').click({ position: { x: 10, y: 10 } });
+
+  const before = await readDoc(page);
+  const fid = before.formations[0]?.id ?? '';
+
+  await page.getByRole('button', { name: 'Suggest formations' }).click();
+  await page
+    .getByLabel('Formation suggestions')
+    .getByRole('button', { name: 'Apply' })
+    .first()
+    .click();
+
+  const after = await readDoc(page);
+  expect(after.positions[fid]).not.toEqual(before.positions[fid]);
+
+  await page.keyboard.press('Control+z');
+  const undone = await readDoc(page);
+  expect(undone.positions[fid]).toEqual(before.positions[fid]);
+});
+
 test('PDF export with Chinese names embeds the CJK font and downloads', async ({ page }) => {
   await page.getByLabel('Performance title').fill('春季舞展');
   await page.getByText('Add performer').click();

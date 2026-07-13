@@ -141,6 +141,23 @@ export const en = {
     deleteFormation: 'Delete formation',
   },
 
+  suggest: {
+    button: 'Suggest formations',
+    buttonTitle:
+      'Propose shapes for this formation, scored by walking distance from the previous one, spacing and symmetry',
+    listAria: 'Formation suggestions',
+    apply: 'Apply',
+    applyTitle: 'Arrange everyone into this suggestion (undoable)',
+    kinds: {
+      line: 'Line',
+      v: 'V shape',
+      circle: 'Circle',
+      grid: 'Grid',
+      twoRows: 'Two rows',
+      diagonal: 'Diagonal',
+    },
+  },
+
   stage: {
     title: 'Stage',
     width: 'Width (m)',
