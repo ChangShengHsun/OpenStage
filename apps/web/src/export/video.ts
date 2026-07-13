@@ -108,6 +108,8 @@ function build2dRenderer(
   const originX = (W - stageW) / 2;
   const originY = headerH + (H - headerH - footerH - stageH) / 2;
   const markR = Math.max(0.3 * scale, 7);
+  // Audience at the top = the plan rotated 180° (performer view).
+  const flip = doc.performance.audienceAt === 'top';
 
   return (tMs: number): void => {
     ctx.fillStyle = BG;
@@ -132,6 +134,21 @@ function build2dRenderer(
     ctx.lineWidth = 1;
     ctx.strokeRect(originX, originY, stageW, stageH);
 
+    // 1-meter grid — same reference lines the editor canvas shows.
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    for (let m = 1; m < stageWidth; m++) {
+      ctx.moveTo(originX + m * scale, originY);
+      ctx.lineTo(originX + m * scale, originY + stageH);
+    }
+    for (let m = 1; m < stageHeight; m++) {
+      ctx.moveTo(originX, originY + m * scale);
+      ctx.lineTo(originX + stageW, originY + m * scale);
+    }
+    ctx.stroke();
+    ctx.restore();
+
     ctx.save();
     ctx.setLineDash([6, 6]);
     ctx.globalAlpha = 0.4;
@@ -142,20 +159,21 @@ function build2dRenderer(
     ctx.restore();
 
     ctx.fillStyle = EDGE;
-    ctx.fillRect(originX, originY + stageH + 4, stageW, 3);
+    ctx.fillRect(originX, flip ? originY - 7 : originY + stageH + 4, stageW, 3);
     ctx.fillStyle = DIM;
     ctx.font = `13px ${SANS}`;
     ctx.textAlign = 'center';
-    ctx.fillText(msg.stage.audience, W / 2, originY + stageH + 28);
+    ctx.fillText(msg.stage.audience, W / 2, flip ? originY - 14 : originY + stageH + 28);
 
     const poses = posesAtTime(doc.formations, doc.positions, tMs);
     for (const performer of doc.performers) {
       const pose = poses.get(performer.id);
       if (pose === undefined) continue;
-      const x = originX + pose.x * scale;
-      const y = originY + pose.y * scale;
-      // rotation 0 = facing the audience (downstage, +y on the plan).
-      const angleRad = ((pose.rotation + 90) * Math.PI) / 180;
+      const x = originX + (flip ? stageWidth - pose.x : pose.x) * scale;
+      const y = originY + (flip ? stageHeight - pose.y : pose.y) * scale;
+      // rotation 0 = facing the audience (downstage, +y on the plan;
+      // -y when flipped).
+      const angleRad = ((pose.rotation + (flip ? 270 : 90)) * Math.PI) / 180;
 
       ctx.strokeStyle = INK;
       ctx.lineWidth = 2;

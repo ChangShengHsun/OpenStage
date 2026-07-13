@@ -71,14 +71,34 @@ export function exportWalkSheetsPdf(): void {
     doc.setDrawColor(INK);
     doc.setLineWidth(0.4);
     doc.rect(originX, originY, stageW, stageH);
+
+    // 1-meter grid — same reference lines the editor canvas shows.
+    doc.setLineWidth(0.1);
+    doc.setDrawColor('#d8d2c8');
+    for (let m = 1; m < s.performance.stageWidth; m++) {
+      doc.line(originX + m * scale, originY, originX + m * scale, originY + stageH);
+    }
+    for (let m = 1; m < s.performance.stageHeight; m++) {
+      doc.line(originX, originY + m * scale, originX + stageW, originY + m * scale);
+    }
+
     doc.setLineWidth(0.15);
     doc.setDrawColor(DIM);
     doc.setLineDashPattern([1.5, 1.5], 0);
     doc.line(originX + stageW / 2, originY, originX + stageW / 2, originY + stageH);
     doc.setLineDashPattern([], 0);
+
+    // Audience at the top = the plan rotated 180° (performer view).
+    const flip = s.performance.audienceAt === 'top';
+    const toPt = (pos: { x: number; y: number }): { x: number; y: number } => ({
+      x: originX + (flip ? s.performance.stageWidth - pos.x : pos.x) * scale,
+      y: originY + (flip ? s.performance.stageHeight - pos.y : pos.y) * scale,
+    });
     doc.setFontSize(7);
     doc.setTextColor(DIM);
-    doc.text('AUDIENCE', originX + stageW / 2, originY + stageH + 5, { align: 'center' });
+    doc.text('AUDIENCE', originX + stageW / 2, flip ? originY - 2.5 : originY + stageH + 5, {
+      align: 'center',
+    });
 
     // Route: dashed legs between consecutive stops, numbered circles on top.
     doc.setDrawColor(performer.color);
@@ -88,17 +108,13 @@ export function exportWalkSheetsPdf(): void {
       const a = stops[i];
       const b = stops[i + 1];
       if (a === undefined || b === undefined) continue;
-      doc.line(
-        originX + a.pos.x * scale,
-        originY + a.pos.y * scale,
-        originX + b.pos.x * scale,
-        originY + b.pos.y * scale,
-      );
+      const aPt = toPt(a.pos);
+      const bPt = toPt(b.pos);
+      doc.line(aPt.x, aPt.y, bPt.x, bPt.y);
     }
     doc.setLineDashPattern([], 0);
     stops.forEach((stop, i) => {
-      const x = originX + stop.pos.x * scale;
-      const y = originY + stop.pos.y * scale;
+      const { x, y } = toPt(stop.pos);
       doc.setFillColor('#ffffff');
       doc.setDrawColor(performer.color);
       doc.setLineWidth(0.5);

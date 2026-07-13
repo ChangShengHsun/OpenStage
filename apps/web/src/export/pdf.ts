@@ -56,6 +56,16 @@ export function exportPerformancePdf(): void {
     doc.setLineWidth(0.4);
     doc.rect(originX, originY, stageW, stageH);
 
+    // 1-meter grid — same reference lines the editor canvas shows.
+    doc.setLineWidth(0.1);
+    doc.setDrawColor('#d8d2c8');
+    for (let m = 1; m < s.performance.stageWidth; m++) {
+      doc.line(originX + m * scale, originY, originX + m * scale, originY + stageH);
+    }
+    for (let m = 1; m < s.performance.stageHeight; m++) {
+      doc.line(originX, originY + m * scale, originX + stageW, originY + m * scale);
+    }
+
     // Center line
     doc.setLineWidth(0.15);
     doc.setDrawColor(DIM);
@@ -63,16 +73,20 @@ export function exportPerformancePdf(): void {
     doc.line(originX + stageW / 2, originY, originX + stageW / 2, originY + stageH);
     doc.setLineDashPattern([], 0);
 
+    // Audience at the top = the plan rotated 180° (performer view).
+    const flip = s.performance.audienceAt === 'top';
     doc.setFontSize(8);
     doc.setTextColor(DIM);
-    doc.text('AUDIENCE', PAGE_W / 2, originY + stageH + 6, { align: 'center' });
+    doc.text('AUDIENCE', PAGE_W / 2, flip ? originY - 3 : originY + stageH + 6, {
+      align: 'center',
+    });
 
     // Marks
     for (const performer of s.performers) {
       const pos = positions[performer.id];
       if (pos === undefined) continue;
-      const x = originX + pos.x * scale;
-      const y = originY + pos.y * scale;
+      const x = originX + (flip ? s.performance.stageWidth - pos.x : pos.x) * scale;
+      const y = originY + (flip ? s.performance.stageHeight - pos.y : pos.y) * scale;
       const arm = 1.8;
 
       doc.setDrawColor(performer.color);
@@ -80,8 +94,9 @@ export function exportPerformancePdf(): void {
       doc.line(x - arm, y - arm, x + arm, y + arm);
       doc.line(x - arm, y + arm, x + arm, y - arm);
 
-      // Facing arrow: rotation 0 = toward audience (page-down), clockwise.
-      const angleRad = ((pos.rotation + 90) * Math.PI) / 180;
+      // Facing arrow: rotation 0 = toward audience (page-down; page-up when
+      // flipped), clockwise.
+      const angleRad = ((pos.rotation + (flip ? 270 : 90)) * Math.PI) / 180;
       const dirX = Math.cos(angleRad);
       const dirY = Math.sin(angleRad);
       const tipX = x + dirX * 6;
