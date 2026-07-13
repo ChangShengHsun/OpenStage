@@ -8,7 +8,10 @@ const ROTATE_STEP_DEG = 15;
 
 /**
  * Global editor hotkeys: arrows nudge (Shift = 1m), [ ] rotate ±15°,
- * Space toggles play, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y undo/redo.
+ * Space toggles play, Delete/Backspace removes the selection (performers if
+ * any are selected, else the formation), Escape deselects,
+ * Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y undo/redo, Ctrl+C/V copy-paste positions,
+ * Ctrl+A selects everyone, Ctrl+D duplicates the formation.
  * Ignored while typing in a form control.
  */
 export function useAppHotkeys(togglePlay: () => void): void {
@@ -30,13 +33,34 @@ export function useAppHotkeys(togglePlay: () => void): void {
       }
 
       if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === 'z') {
-          e.preventDefault();
-          if (e.shiftKey) s.redo();
-          else s.undo();
-        } else if (e.key.toLowerCase() === 'y') {
-          e.preventDefault();
-          s.redo();
+        switch (e.key.toLowerCase()) {
+          case 'z':
+            e.preventDefault();
+            if (e.shiftKey) s.redo();
+            else s.undo();
+            break;
+          case 'y':
+            e.preventDefault();
+            s.redo();
+            break;
+          case 'c':
+            e.preventDefault();
+            s.copyPositions();
+            break;
+          case 'v':
+            e.preventDefault();
+            s.pastePositions();
+            break;
+          case 'a':
+            e.preventDefault();
+            s.setPerformerSelection(s.performers.map((p) => p.id));
+            break;
+          case 'd':
+            e.preventDefault();
+            s.duplicateFormation();
+            break;
+          default:
+            break;
         }
         return;
       }
@@ -58,6 +82,14 @@ export function useAppHotkeys(togglePlay: () => void): void {
         case 'ArrowDown':
           e.preventDefault();
           s.nudgeSelected(0, step);
+          break;
+        case 'Delete':
+        case 'Backspace':
+          e.preventDefault();
+          s.deleteSelection();
+          break;
+        case 'Escape':
+          s.clearPerformerSelection();
           break;
         case '[':
           s.rotateSelected(-ROTATE_STEP_DEG);

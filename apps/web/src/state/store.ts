@@ -53,7 +53,11 @@ interface EditorState extends DocState {
   updatePerformer: (id: string, patch: Partial<Omit<Performer, 'id' | 'performanceId'>>) => void;
 
   addFormation: () => void;
+  /** Insert a copy of the selected formation right after it (Ctrl+D). */
+  duplicateFormation: () => void;
   removeFormation: (id: string) => void;
+  /** Delete key: selected performers if any, else the selected formation. */
+  deleteSelection: () => void;
   updateFormation: (
     id: string,
     patch: Partial<Omit<Formation, 'id' | 'performanceId' | 'orderIndex'>>,
@@ -99,6 +103,14 @@ interface EditorState extends DocState {
 
   /** Copy every stored position from another formation into the selected one. */
   copyPositionsFrom: (sourceFormationId: string) => void;
+
+  /**
+   * Ctrl+C: copy the selected performers' spots in the current formation to
+   * the in-memory clipboard (no selection = the whole formation).
+   */
+  copyPositions: () => void;
+  /** Ctrl+V: apply clipboard spots to the current formation. */
+  pastePositions: () => void;
 
   /** Performer whose whole-show walk path is overlaid on the canvas (UI-only). */
   pathPerformerId: string | null;
@@ -226,6 +238,10 @@ function snapshotDoc(s: DocState): DocState {
   };
 }
 
+// Positions clipboard for Ctrl+C/Ctrl+V — session-only, keyed by performer id
+// so a spot copied in one formation pastes onto the SAME performer elsewhere.
+let positionsClipboard: Record<string, { x: number; y: number; rotation: number }> | null = null;
+
 // ponytail: in-memory snapshot undo (Ctrl+Z), capped ring buffer; move to a
 // structural-sharing history if doc sizes ever make this slow.
 const UNDO_LIMIT = 50;
@@ -254,9 +270,12 @@ export const useEditor = create<EditorState>()(
         set(fn(get()) as EditorState);
       }
 
+      const initialDoc = createInitialDoc();
       return {
-        ...createInitialDoc(),
-        selectedFormationId: '',
+        ...initialDoc,
+        // Fresh sessions start with the (only) formation selected; persisted
+        // docs get re-pointed by the subscribe guard below after rehydration.
+        selectedFormationId: initialDoc.formations[0]?.id ?? '',
         selectedPerformerIds: [],
         playheadMs: 0,
         isPlaying: false,
@@ -410,6 +429,56 @@ export const useEditor = create<EditorState>()(
               selectedFormationId: id,
             };
           }),
+
+        duplicateFormation: () =>
+          mutateDoc((s) => {
+            const source = s.formations.find((f) => f.id === s.selectedFormationId);
+            if (source === undefined) return {};
+            const id = newId();
+            const startTimeMs = source.startTimeMs + source.durationMs + DEFAULT_TRANSITION_MS;
+            const copied: Record<string, FormationPosition> = Object.fromEntries(
+              Object.entries(s.positions[source.id] ?? {}).map(([pid, pos]) => [
+                pid,
+                { ...pos, formationId: id },
+              ]),
+            );
+            const duplicate: Formation = {
+              ...source,
+              id,
+              startTimeMs,
+              orderIndex: s.formations.length,
+              name: `${source.name} copy`,
+            };
+            return {
+              formations: reindexByStart([...s.formations, duplicate], id, startTimeMs),
+              positions: { ...s.positions, [id]: copied },
+              selectedFormationId: id,
+            };
+          }),
+
+        deleteSelection: () => {
+          const s = get();
+          if (s.selectedPerformerIds.length > 0) {
+            // One undo step no matter how many performers go.
+            mutateDoc((st) => {
+              const removed = new Set(st.selectedPerformerIds);
+              const positions: PositionMap = Object.fromEntries(
+                Object.entries(st.positions).map(([fid, byPerformer]) => {
+                  const rest = { ...byPerformer };
+                  for (const pid of removed) delete rest[pid];
+                  return [fid, rest];
+                }),
+              );
+              return {
+                performers: st.performers.filter((p) => !removed.has(p.id)),
+                positions,
+                selectedPerformerIds: [],
+              };
+            });
+            return;
+          }
+          get().removeFormation(s.selectedFormationId);
+        },
 
         removeFormation: (id) =>
           mutateDoc((s) => {
@@ -702,6 +771,41 @@ export const useEditor = create<EditorState>()(
             );
             return { positions: { ...s.positions, [targetId]: copied } };
           }),
+
+        copyPositions: () => {
+          const s = get();
+          const current = s.positions[s.selectedFormationId] ?? {};
+          const ids =
+            s.selectedPerformerIds.length > 0 ? s.selectedPerformerIds : Object.keys(current);
+          const copied: NonNullable<typeof positionsClipboard> = {};
+          for (const pid of ids) {
+            const pos = current[pid];
+            if (pos !== undefined) copied[pid] = { x: pos.x, y: pos.y, rotation: pos.rotation };
+          }
+          if (Object.keys(copied).length > 0) positionsClipboard = copied;
+        },
+
+        pastePositions: () => {
+          const clip = positionsClipboard;
+          if (clip === null) return;
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = { ...(s.positions[fid] ?? {}) };
+            let changed = false;
+            for (const [pid, spot] of Object.entries(clip)) {
+              if (!s.performers.some((p) => p.id === pid)) continue;
+              const existing = current[pid];
+              const x = clamp(spot.x, 0, s.performance.stageWidth);
+              const y = clamp(spot.y, 0, s.performance.stageHeight);
+              current[pid] =
+                existing !== undefined
+                  ? { ...existing, x, y, rotation: spot.rotation }
+                  : { formationId: fid, performerId: pid, x, y, rotation: spot.rotation };
+              changed = true;
+            }
+            return changed ? { positions: { ...s.positions, [fid]: current } } : {};
+          });
+        },
 
         pathPerformerId: null,
         setPathPerformer: (id) => set({ pathPerformerId: id }),

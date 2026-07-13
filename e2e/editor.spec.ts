@@ -624,3 +624,54 @@ test('3D video export records the perspective view', async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/-3d\.(webm|mp4)$/);
   expect((await stat(await download.path())).size).toBeGreaterThan(10_000);
 });
+
+test('Delete key removes the selected performer, then the formation', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click(); // Dancer 2 stays selected
+  let doc = await readDoc(page);
+  expect(doc.performers).toHaveLength(2);
+
+  await page.keyboard.press('Delete');
+  doc = await readDoc(page);
+  expect(doc.performers).toHaveLength(1);
+
+  // No performer selected now — Delete removes the selected formation.
+  await page.getByText('Add formation').click();
+  doc = await readDoc(page);
+  expect(doc.formations).toHaveLength(2);
+  await page.keyboard.press('Delete');
+  doc = await readDoc(page);
+  expect(doc.formations).toHaveLength(1);
+});
+
+test('Ctrl+C / Ctrl+V copies positions across formations', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  const drag = async (fx: number, fy: number, tx: number, ty: number): Promise<void> => {
+    const from = meterToPx(fx, fy);
+    const to = meterToPx(tx, ty);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 8 });
+    await page.mouse.up();
+  };
+  await drag(1.5, 6.5, 9, 2); // dancer ends up selected
+  await page.keyboard.press('Control+c');
+
+  await page.getByText('Add formation').click(); // F2 copies F1
+  await drag(9, 2, 3, 5); // move them somewhere else in F2
+  await page.keyboard.press('Control+v'); // paste restores the copied spot
+
+  const doc = await readDoc(page);
+  const f2 = doc.formations.find((f) => f.orderIndex === 1)?.id ?? '';
+  const pid = doc.performers[0]?.id ?? '';
+  expect(doc.positions[f2]?.[pid]?.x).toBeCloseTo(9, 1);
+  expect(doc.positions[f2]?.[pid]?.y).toBeCloseTo(2, 1);
+});
+
+test('Ctrl+D duplicates the selected formation after itself', async ({ page }) => {
+  await page.keyboard.press('Control+d');
+  const doc = await readDoc(page);
+  expect(doc.formations).toHaveLength(2);
+  // 0ms start + 8s hold + 4s default transition.
+  expect(doc.formations.find((f) => f.orderIndex === 1)?.startTimeMs).toBe(12_000);
+});
