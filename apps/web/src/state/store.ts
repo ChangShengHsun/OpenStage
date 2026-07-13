@@ -46,6 +46,8 @@ interface EditorState extends DocState {
   setTitle: (title: string) => void;
   setStageSize: (width: number, height: number) => void;
   setBpm: (bpm: number | null) => void;
+  /** Which screen edge the audience is drawn on (2D plan and exports). */
+  setAudienceAt: (at: 'top' | 'bottom') => void;
 
   addPerformer: () => void;
   importRoster: (rows: readonly RosterRow[]) => void;
@@ -306,6 +308,9 @@ export const useEditor = create<EditorState>()(
           mutateDoc((s) => ({
             performance: { ...s.performance, bpm: bpm === null ? null : clamp(bpm, 20, 300) },
           })),
+
+        setAudienceAt: (at) =>
+          mutateDoc((s) => ({ performance: { ...s.performance, audienceAt: at } })),
 
         addPerformer: () =>
           mutateDoc((s) => {

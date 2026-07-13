@@ -22,10 +22,11 @@ const HIT_RADIUS_M = 0.45;
 /**
  * rotation 0 = facing the audience (downstage = screen bottom), degrees
  * clockwise on the plan view. Konva angle 0 points screen-right, so the
- * facing direction on screen is rotation + 90.
+ * facing direction on screen is rotation + 90. With the audience drawn at
+ * the top the whole plan is rotated 180°, so the angle shifts by 180 too.
  */
-function facingToScreenDeg(rotation: number): number {
-  return rotation + 90;
+function facingToScreenDeg(rotation: number, flip: boolean): number {
+  return rotation + (flip ? 270 : 90);
 }
 
 interface CanvasSize {
@@ -92,14 +93,18 @@ export function StageCanvas(): ReactElement {
   const offsetX = (size.width - floorW) / 2;
   const offsetY = (size.height - floorH) / 2;
 
+  // Audience at the top = the plan rotated 180° (performers' perspective).
+  // Only these two mappings flip; stored coordinates never change.
+  const flip = performance.audienceAt === 'top';
   const toPx = (xM: number, yM: number): { x: number; y: number } => ({
-    x: offsetX + xM * pxPerMeter,
-    y: offsetY + yM * pxPerMeter,
+    x: offsetX + (flip ? stageWidth - xM : xM) * pxPerMeter,
+    y: offsetY + (flip ? stageHeight - yM : yM) * pxPerMeter,
   });
-  const toMeters = (xPx: number, yPx: number): { x: number; y: number } => ({
-    x: (xPx - offsetX) / pxPerMeter,
-    y: (yPx - offsetY) / pxPerMeter,
-  });
+  const toMeters = (xPx: number, yPx: number): { x: number; y: number } => {
+    const x = (xPx - offsetX) / pxPerMeter;
+    const y = (yPx - offsetY) / pxPerMeter;
+    return flip ? { x: stageWidth - x, y: stageHeight - y } : { x, y };
+  };
 
   // While playing (or scrubbing), poses come from the timeline; while editing,
   // straight from the selected formation.
@@ -165,8 +170,11 @@ export function StageCanvas(): ReactElement {
             return;
           }
           if (isViewMode || marquee === null) return;
-          const a = toMeters(Math.min(marquee.x0, marquee.x1), Math.min(marquee.y0, marquee.y1));
-          const b = toMeters(Math.max(marquee.x0, marquee.x1), Math.max(marquee.y0, marquee.y1));
+          // Corners land swapped when the plan is flipped — sort in meters.
+          const c1 = toMeters(Math.min(marquee.x0, marquee.x1), Math.min(marquee.y0, marquee.y1));
+          const c2 = toMeters(Math.max(marquee.x0, marquee.x1), Math.max(marquee.y0, marquee.y1));
+          const a = { x: Math.min(c1.x, c2.x), y: Math.min(c1.y, c2.y) };
+          const b = { x: Math.max(c1.x, c2.x), y: Math.max(c1.y, c2.y) };
           const inside = performers
             .filter((p) => {
               const pos = editPositions[p.id];
@@ -238,7 +246,7 @@ export function StageCanvas(): ReactElement {
           />
           <Text
             x={offsetX}
-            y={offsetY + floorH + 10}
+            y={flip ? offsetY - 21 : offsetY + floorH + 10}
             width={floorW}
             align="center"
             text={t.stage.audience}
@@ -448,7 +456,7 @@ export function StageCanvas(): ReactElement {
                 <Wedge
                   radius={WEDGE_RADIUS_M * pxPerMeter}
                   angle={WEDGE_ANGLE_DEG}
-                  rotation={facingToScreenDeg(pose.rotation) - WEDGE_ANGLE_DEG / 2}
+                  rotation={facingToScreenDeg(pose.rotation, flip) - WEDGE_ANGLE_DEG / 2}
                   fill={p.color}
                   opacity={0.22}
                 />

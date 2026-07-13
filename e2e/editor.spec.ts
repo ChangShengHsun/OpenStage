@@ -675,3 +675,9 @@ test('Ctrl+D duplicates the selected formation after itself', async ({ page }) =
   // 0ms start + 8s hold + 4s default transition.
   expect(doc.formations.find((f) => f.orderIndex === 1)?.startTimeMs).toBe(12_000);
 });
+
+test('audience side is selectable and persists in the doc', async ({ page }) => {
+  await page.getByLabel('Audience side').selectOption('top');
+  const doc = await readDoc(page);
+  expect((doc.performance as { audienceAt?: string }).audienceAt).toBe('top');
+});

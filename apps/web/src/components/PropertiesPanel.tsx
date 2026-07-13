@@ -408,6 +408,7 @@ function StageSection(): ReactElement {
   const t = useT();
   const performance = useEditor((s) => s.performance);
   const setStageSize = useEditor((s) => s.setStageSize);
+  const setAudienceAt = useEditor((s) => s.setAudienceAt);
   const setBpm = useEditor((s) => s.setBpm);
   const addCountSegment = useEditor((s) => s.addCountSegment);
   const updateCountSegment = useEditor((s) => s.updateCountSegment);
@@ -460,6 +461,17 @@ function StageSection(): ReactElement {
               }}
             />
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="stage-audience">{t.stage.audiencePosition}</label>
+          <select
+            id="stage-audience"
+            value={performance.audienceAt ?? 'bottom'}
+            onChange={(e) => setAudienceAt(e.target.value === 'top' ? 'top' : 'bottom')}
+          >
+            <option value="bottom">{t.stage.audienceBottom}</option>
+            <option value="top">{t.stage.audienceTop}</option>
+          </select>
         </div>
         <div className="field">
           <label htmlFor="stage-bpm">{t.stage.bpm}</label>

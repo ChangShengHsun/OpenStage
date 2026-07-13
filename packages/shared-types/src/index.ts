@@ -51,6 +51,12 @@ export interface Performance {
    * from 0 (also what docs saved before this field existed mean).
    */
   countSegments: CountSegment[];
+  /**
+   * Which screen edge the audience sits on in the 2D plan and exports.
+   * 'top' renders the plan rotated 180° (the performers' own perspective);
+   * stored coordinates are unaffected. Absent = 'bottom' (director view).
+   */
+  audienceAt?: 'top' | 'bottom';
 }
 
 /** One counted passage: count 1 lands on startMs, counting stops at endMs. */
