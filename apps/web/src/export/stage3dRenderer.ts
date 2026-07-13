@@ -34,7 +34,11 @@ export function buildStage3dRenderer(canvas: HTMLCanvasElement, doc: SceneDoc): 
   scene.background = new THREE.Color('#191512');
 
   const camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 1000);
-  camera.position.set(0, h * 0.6 + 2, h * 1.1 + 4); // audience preset
+  // audienceAt 'top' = performer view: same framing from the upstage side.
+  // The audience edge strip stays on the physical audience edge and shows up
+  // at the far side of the frame, matching the 2D plan's orientation.
+  const cameraSide = performance.audienceAt === 'top' ? -1 : 1;
+  camera.position.set(0, h * 0.6 + 2, cameraSide * (h * 1.1 + 4)); // audience preset
   camera.lookAt(0, 0, 0);
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.55));
