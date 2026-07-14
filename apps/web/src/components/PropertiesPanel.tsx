@@ -5,6 +5,13 @@ import type { TemplateKind } from '../state/templates';
 import { suggestFormations } from '../state/suggest';
 import type { Suggestion } from '../state/suggest';
 import { deleteSnapshot, listSnapshots, saveSnapshot } from '../state/history';
+import {
+  applyPresetToCast,
+  deleteFormationPreset,
+  listFormationPresets,
+  saveFormationPreset,
+} from '../state/formationPresets';
+import type { FormationPreset } from '../state/formationPresets';
 import type { Snapshot } from '../state/history';
 import { CommentsSection } from './CommentsSection';
 import { useT } from '../i18n';
@@ -300,6 +307,37 @@ function FormationSection(): ReactElement | null {
   const [templateKind, setTemplateKind] = useState<TemplateKind>('line');
   const [copySourceId, setCopySourceId] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [presets, setPresets] = useState<FormationPreset[]>(() => listFormationPresets());
+  const [presetId, setPresetId] = useState('');
+
+  const onSavePreset = (): void => {
+    const s = useEditor.getState();
+    const name = window.prompt(t.presets.savePrompt, t.presets.defaultName);
+    if (name === null || name.trim() === '') return;
+    saveFormationPreset(
+      name.trim(),
+      s.performers.map((p) => p.id),
+      s.positions[s.selectedFormationId] ?? {},
+      s.performance.stageWidth,
+      s.performance.stageHeight,
+    );
+    setPresets(listFormationPresets());
+  };
+
+  const onApplyPreset = (): void => {
+    const preset = presets.find((p) => p.id === presetId);
+    if (preset === undefined) return;
+    const s = useEditor.getState();
+    applySuggestedPositions(
+      applyPresetToCast(
+        preset,
+        s.performers.map((p) => p.id),
+        s.positions[s.selectedFormationId] ?? {},
+        s.performance.stageWidth,
+        s.performance.stageHeight,
+      ),
+    );
+  };
 
   const onSuggest = (): void => {
     // Read once on click — suggestions should not churn while dragging.
@@ -412,6 +450,58 @@ function FormationSection(): ReactElement | null {
             >
               {t.formation.apply}
             </button>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="form-preset">{t.presets.label}</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select
+              id="form-preset"
+              aria-label={t.presets.selectAria}
+              value={presetId}
+              onChange={(e) => setPresetId(e.target.value)}
+            >
+              <option value="">—</option>
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {p.spots.length}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn"
+              disabled={presetId === '' || !hasPerformers}
+              title={t.presets.applyTitle}
+              onClick={onApplyPreset}
+            >
+              {t.presets.apply}
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="btn"
+              disabled={!hasPerformers}
+              title={t.presets.saveTitle}
+              onClick={onSavePreset}
+            >
+              {t.presets.save}
+            </button>
+            {presetId !== '' && (
+              <button
+                type="button"
+                className="btn"
+                aria-label={t.presets.deleteAria}
+                onClick={() => {
+                  deleteFormationPreset(presetId);
+                  setPresetId('');
+                  setPresets(listFormationPresets());
+                }}
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
         <button

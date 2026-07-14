@@ -841,6 +841,38 @@ test('crews: save the cast, load it into a fresh choreography with groups', asyn
   await expect(page.getByText('Team 2026 · 2')).toBeHidden();
 });
 
+test('formation presets: save current shape, apply it in a new formation', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  // deterministic spots via the X/Y inputs
+  await page.getByText('Dancer 1').first().click();
+  await page.locator('#pos-x').fill('3');
+  await page.locator('#pos-y').fill('2');
+  await page.getByText('Dancer 2').first().click();
+  await page.locator('#pos-x').fill('9');
+  await page.locator('#pos-y').fill('2');
+  await page.getByLabel('Stage canvas').click({ position: { x: 10, y: 10 } }); // formation panel
+
+  page.once('dialog', (dialog) => void dialog.accept('Duo line'));
+  await page.getByRole('button', { name: 'Save this formation' }).click();
+  await expect(page.getByLabel('Formation preset')).toContainText('Duo line · 2');
+
+  // scramble the current formation, then apply the preset back
+  await page.getByRole('button', { name: 'Mirror left–right' }).click();
+  await page.getByLabel('Formation preset').selectOption({ label: 'Duo line · 2' });
+  await page
+    .getByTitle('Arrange everyone into this preset, walking as little as possible (undoable)')
+    .click();
+
+  const state = await readDoc(page);
+  const fid = state.formations[0]?.id ?? '';
+  const xs = state.performers
+    .map((p) => state.positions[fid]?.[p.id]?.x ?? NaN)
+    .sort((a, b) => a - b);
+  expect(Math.abs((xs[0] ?? 0) - 3)).toBeLessThan(0.05);
+  expect(Math.abs((xs[1] ?? 0) - 9)).toBeLessThan(0.05);
+});
+
 test('grid snap: dragged performer lands on the 0.5m lattice', async ({ page }) => {
   await page.getByText('Add performer').click();
   await page.getByRole('button', { name: 'Snap', exact: true }).click();

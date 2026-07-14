@@ -199,6 +199,18 @@ export const zh: Messages = {
     deleteFormation: '刪除隊形',
   },
 
+  presets: {
+    label: '我的隊形庫',
+    selectAria: '隊形 preset',
+    save: '收藏目前隊形',
+    saveTitle: '把這個隊形存起來（會隨舞台尺寸縮放），任何編舞都能套用',
+    savePrompt: 'Preset 名稱：',
+    defaultName: '我的隊形',
+    apply: '套用',
+    applyTitle: '把所有人排進這個隊形，走位距離最短（可復原）',
+    deleteAria: '刪除選取的 preset',
+  },
+
   suggest: {
     button: '建議隊形',
     buttonTitle: '依「與上一個隊形的行走距離、間距、對稱性」評分，提出這個隊形的候選形狀',

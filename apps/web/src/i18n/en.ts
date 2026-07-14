@@ -200,6 +200,18 @@ export const en = {
     deleteFormation: 'Delete formation',
   },
 
+  presets: {
+    label: 'My presets',
+    selectAria: 'Formation preset',
+    save: 'Save this formation',
+    saveTitle: 'Keep this shape (scaled to any stage) for reuse in any choreography',
+    savePrompt: 'Preset name:',
+    defaultName: 'My formation',
+    apply: 'Apply',
+    applyTitle: 'Arrange everyone into this preset, walking as little as possible (undoable)',
+    deleteAria: 'Delete selected preset',
+  },
+
   suggest: {
     button: 'Suggest formations',
     buttonTitle:
