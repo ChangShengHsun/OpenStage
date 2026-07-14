@@ -137,6 +137,24 @@ export const en = {
     removeFromCast: 'Remove from cast',
   },
 
+  props: {
+    title: 'Props',
+    add: 'Add prop',
+    addTitle: 'A box, platform or banner — drag it per formation like a dancer',
+    listAria: 'Props',
+    sectionTitle: 'Prop',
+    name: 'Name',
+    kind: 'Shape',
+    kindRect: 'Rectangle',
+    kindCircle: 'Circle',
+    kindTriangle: 'Triangle',
+    color: 'Color',
+    widthLabel: 'Width (m)',
+    heightLabel: 'Depth (m)',
+    rotationLabel: 'Rotation (°)',
+    remove: 'Remove prop',
+  },
+
   formation: {
     title: 'Formation',
     name: 'Name',

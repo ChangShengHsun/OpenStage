@@ -137,6 +137,24 @@ export const zh: Messages = {
     removeFromCast: '從名單移除',
   },
 
+  props: {
+    title: '道具',
+    add: '新增道具',
+    addTitle: '箱子、平台或布條——和舞者一樣可在每個隊形分別拖曳',
+    listAria: '道具',
+    sectionTitle: '道具',
+    name: '名稱',
+    kind: '形狀',
+    kindRect: '矩形',
+    kindCircle: '圓形',
+    kindTriangle: '三角形',
+    color: '顏色',
+    widthLabel: '寬度 (m)',
+    heightLabel: '深度 (m)',
+    rotationLabel: '旋轉 (°)',
+    remove: '移除道具',
+  },
+
   formation: {
     title: '隊形',
     name: '名稱',

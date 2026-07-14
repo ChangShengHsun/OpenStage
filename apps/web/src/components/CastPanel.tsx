@@ -12,6 +12,10 @@ export function CastPanel(): ReactElement {
   const importRoster = useEditor((s) => s.importRoster);
   const selectPerformer = useEditor((s) => s.selectPerformer);
   const setPerformerSelection = useEditor((s) => s.setPerformerSelection);
+  const props = useEditor((s) => s.props);
+  const selectedPropId = useEditor((s) => s.selectedPropId);
+  const addProp = useEditor((s) => s.addProp);
+  const selectProp = useEditor((s) => s.selectProp);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [importNote, setImportNote] = useState('');
@@ -108,6 +112,44 @@ export function CastPanel(): ReactElement {
                 <span className="cast-dot" style={{ background: p.color }} />
                 <span className="cast-name">{p.name}</span>
                 {p.role !== '' && <span className="cast-role">{p.role}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="panel-title">{t.props.title}</div>
+      <div className="panel-section">
+        <button
+          type="button"
+          className="btn"
+          title={t.props.addTitle}
+          onClick={() => addProp('rect')}
+        >
+          {t.props.add}
+        </button>
+      </div>
+      {props.length > 0 && (
+        <div role="listbox" aria-label={t.props.listAria}>
+          {props.map((prop) => {
+            const selected = selectedPropId === prop.id;
+            const glyph = prop.kind === 'circle' ? '●' : prop.kind === 'triangle' ? '▲' : '■';
+            return (
+              <div
+                key={prop.id}
+                role="option"
+                aria-selected={selected}
+                tabIndex={0}
+                className={`cast-row${selected ? ' selected' : ''}`}
+                onClick={() => selectProp(selected ? null : prop.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectProp(selected ? null : prop.id);
+                  }
+                }}
+              >
+                <span style={{ color: prop.color, fontSize: 10 }}>{glyph}</span>
+                <span className="cast-name">{prop.name}</span>
               </div>
             );
           })}

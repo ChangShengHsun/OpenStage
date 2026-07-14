@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { useEditor } from '../state/store';
 import { byOrder, formatTimecode } from '../state/interpolate';
+import { placeOutline, propOutline } from '../state/props';
 import { safeFilename } from './filename';
 import { ensureCjkFont, hasCjk } from './pdfFont';
 
@@ -26,6 +27,7 @@ export async function exportPerformancePdf(): Promise<void> {
   const allText = [
     s.performance.title,
     ...s.performers.flatMap((p) => [p.name, p.role]),
+    ...s.props.map((p) => p.name),
     ...s.formations.map((f) => f.name),
   ].join('');
   const font = await ensureCjkFont(doc, hasCjk(allText));
@@ -89,6 +91,41 @@ export async function exportPerformancePdf(): Promise<void> {
     doc.text('AUDIENCE', PAGE_W / 2, flip ? originY - 3 : originY + stageH + 6, {
       align: 'center',
     });
+
+    // Props: scenery outlines under the marks.
+    const toPage = (xM: number, yM: number): [number, number] => [
+      originX + (flip ? s.performance.stageWidth - xM : xM) * scale,
+      originY + (flip ? s.performance.stageHeight - yM : yM) * scale,
+    ];
+    for (const prop of s.props) {
+      const pos = positions[prop.id];
+      if (pos === undefined) continue;
+      doc.setDrawColor(prop.color);
+      doc.setLineWidth(0.5);
+      if (prop.kind === 'circle') {
+        // ponytail: ellipse ignores rotation — fine for the common circle case.
+        const [cx, cy] = toPage(pos.x, pos.y);
+        doc.ellipse(cx, cy, (prop.width / 2) * scale, (prop.height / 2) * scale, 'S');
+      } else {
+        const corners = placeOutline(
+          propOutline(prop.kind, prop.width, prop.height),
+          pos.x,
+          pos.y,
+          pos.rotation,
+        ).map(([xM, yM]) => toPage(xM, yM));
+        const first = corners[0];
+        if (first === undefined) continue;
+        const segments = corners.slice(1).map((corner, i) => {
+          const prev = corners[i] as [number, number];
+          return [corner[0] - prev[0], corner[1] - prev[1]];
+        });
+        doc.lines(segments, first[0], first[1], [1, 1], 'S', true);
+      }
+      const [labelX, labelY] = toPage(pos.x, pos.y);
+      doc.setFontSize(7);
+      doc.setTextColor(DIM);
+      doc.text(prop.name, labelX, labelY + 1, { align: 'center' });
+    }
 
     // Marks
     for (const performer of s.performers) {

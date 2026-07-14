@@ -16,6 +16,17 @@ const doc: DocState = {
     countSegments: [],
   },
   performers: [{ id: 'p1', performanceId: 'perf-1', name: 'Amy', role: '', color: '#fff' }],
+  props: [
+    {
+      id: 'prop1',
+      performanceId: 'perf-1',
+      name: 'Box',
+      kind: 'rect',
+      color: '#8fb98f',
+      width: 2,
+      height: 1,
+    },
+  ],
   formations: [
     {
       id: 'f1',
@@ -38,10 +49,12 @@ describe('cloneDocAs', () => {
     expect(copy.performance.title).toBe('Spring show (copy)');
   });
 
-  it('re-points formations at the new performance, keeping their own ids', () => {
+  it('re-points formations and props at the new performance, keeping their own ids', () => {
     const copy = cloneDocAs(doc, 'perf-2', 't');
     expect(copy.formations[0]?.performanceId).toBe('perf-2');
     expect(copy.formations[0]?.id).toBe('f1');
+    expect(copy.props[0]?.performanceId).toBe('perf-2');
+    expect(copy.props[0]?.id).toBe('prop1');
     // positions stay keyed by the unchanged formation/performer ids
     expect(copy.positions['f1']?.['p1']?.x).toBe(1);
   });

@@ -8,6 +8,7 @@ import {
   Group,
   Wedge,
   Circle,
+  Ellipse,
   Text,
   Shape,
   Image as KonvaImage,
@@ -21,6 +22,7 @@ import { isCollabActive, setAwarenessCursor } from '../collab/collab';
 import { usePeers } from '../hooks/usePeers';
 import { isViewMode } from '../state/viewMode';
 import { useStageBackground } from '../state/stageBackground';
+import { propOutline } from '../state/props';
 import { useT } from '../i18n';
 
 const CURSOR_BROADCAST_MS = 80;
@@ -53,6 +55,9 @@ export function StageCanvas(): ReactElement {
 
   const performance = useEditor((s) => s.performance);
   const performers = useEditor((s) => s.performers);
+  const props = useEditor((s) => s.props);
+  const selectedPropId = useEditor((s) => s.selectedPropId);
+  const selectProp = useEditor((s) => s.selectProp);
   const formations = useEditor((s) => s.formations);
   const positions = useEditor((s) => s.positions);
   const selectedFormationId = useEditor((s) => s.selectedFormationId);
@@ -283,6 +288,103 @@ export function StageCanvas(): ReactElement {
             letterSpacing={4}
             fill="#9a8f82"
           />
+        </Layer>
+
+        {/* Props: scenery footprints under the dancers. The outer group
+            carries position + drag; only the inner group rotates, so the
+            name label stays readable. */}
+        <Layer>
+          {props.map((prop) => {
+            const pose: StagePose = livePoses?.get(prop.id) ?? {
+              x: editPositions[prop.id]?.x ?? NaN,
+              y: editPositions[prop.id]?.y ?? NaN,
+              rotation: editPositions[prop.id]?.rotation ?? 0,
+            };
+            if (!Number.isFinite(pose.x) || !Number.isFinite(pose.y)) return null;
+            const px = toPx(pose.x, pose.y);
+            const selected = selectedPropId === prop.id;
+            const wPx = prop.width * pxPerMeter;
+            const hPx = prop.height * pxPerMeter;
+            return (
+              <Group
+                key={prop.id}
+                x={px.x}
+                y={px.y}
+                draggable={!isPlaying && !isViewMode}
+                dragBoundFunc={(pos) => ({
+                  x: Math.min(offsetX + floorW, Math.max(offsetX, pos.x)),
+                  y: Math.min(offsetY + floorH, Math.max(offsetY, pos.y)),
+                })}
+                onDragStart={() => {
+                  pushHistory();
+                  selectProp(prop.id);
+                }}
+                onDragMove={(e: Konva.KonvaEventObject<DragEvent>) => {
+                  if (!isCollabActive()) return;
+                  const now = Date.now();
+                  if (now - lastCursorSentRef.current < CURSOR_BROADCAST_MS) return;
+                  lastCursorSentRef.current = now;
+                  const m = toMeters(e.target.x(), e.target.y());
+                  setPositionLive(selectedFormationId, prop.id, m.x, m.y);
+                }}
+                onDragEnd={(e: Konva.KonvaEventObject<DragEvent>) => {
+                  const m = toMeters(e.target.x(), e.target.y());
+                  setPositionLive(selectedFormationId, prop.id, m.x, m.y);
+                }}
+                onMouseDown={(e) => {
+                  e.cancelBubble = true;
+                  selectProp(prop.id);
+                }}
+              >
+                <Group rotation={pose.rotation + (flip ? 180 : 0)}>
+                  {prop.kind === 'circle' ? (
+                    <Ellipse
+                      radiusX={wPx / 2}
+                      radiusY={hPx / 2}
+                      fill={prop.color}
+                      opacity={0.25}
+                      stroke={prop.color}
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <Line
+                      points={propOutline(prop.kind, prop.width, prop.height).flatMap(
+                        ([xM, yM]) => [xM * pxPerMeter, yM * pxPerMeter],
+                      )}
+                      closed
+                      fill={prop.color}
+                      opacity={0.25}
+                      stroke={prop.color}
+                      strokeWidth={2}
+                    />
+                  )}
+                </Group>
+                {selected && (
+                  <Rect
+                    x={-wPx / 2 - 4}
+                    y={-hPx / 2 - 4}
+                    width={wPx + 8}
+                    height={hPx + 8}
+                    stroke="#e8a84c"
+                    strokeWidth={1.5}
+                    dash={[4, 4]}
+                    listening={false}
+                  />
+                )}
+                <Text
+                  x={-wPx / 2}
+                  y={-6}
+                  width={wPx}
+                  align="center"
+                  text={prop.name}
+                  fontFamily="'IBM Plex Mono', monospace"
+                  fontSize={11}
+                  fill={prop.color}
+                  listening={false}
+                />
+              </Group>
+            );
+          })}
         </Layer>
 
         {/* Ghosts: where everyone stood in the previous formation. Linear

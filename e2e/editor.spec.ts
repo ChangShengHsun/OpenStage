@@ -774,6 +774,43 @@ test('stage background image uploads, persists and can be removed', async ({ pag
   await expect(page.getByRole('button', { name: 'Upload image' })).toBeVisible();
 });
 
+test('props: add, edit, drag, persist and delete', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add prop' }).click();
+  await expect(page.locator('#prop-name')).toHaveValue('Prop 1');
+
+  // rename + resize via the prop panel
+  await page.locator('#prop-name').fill('Box');
+  await page.locator('#prop-width').fill('3');
+
+  // drag the prop from center stage (6,4) to (3,2)
+  const from = meterToPx(6, 4);
+  const to = meterToPx(3, 2);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 8 });
+  await page.mouse.up();
+
+  const state = await readDoc(page);
+  const props = (state as unknown as { props: { id: string; name: string; width: number }[] })
+    .props;
+  expect(props).toHaveLength(1);
+  expect(props[0]?.name).toBe('Box');
+  expect(props[0]?.width).toBe(3);
+  const fid = state.formations[0]?.id ?? '';
+  const pos = state.positions[fid]?.[props[0]?.id ?? ''];
+  expect(Math.abs((pos?.x ?? 0) - 3)).toBeLessThan(0.3);
+  expect(Math.abs((pos?.y ?? 0) - 2)).toBeLessThan(0.3);
+
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  await expect(page.getByRole('option', { name: 'Box' })).toBeVisible();
+
+  // select the prop in the list, Delete key removes it
+  await page.getByRole('option', { name: 'Box' }).click();
+  await page.keyboard.press('Delete');
+  await expect(page.getByRole('option', { name: 'Box' })).toBeHidden();
+});
+
 test('library: create, switch, duplicate and delete choreographies', async ({ page }) => {
   await page.getByLabel('Performance title').fill('Show A');
   await page.getByText('Add performer').click();

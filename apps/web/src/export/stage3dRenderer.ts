@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Formation, Performer, Performance } from '@openstage/shared-types';
+import type { Formation, Performer, Performance, StageProp } from '@openstage/shared-types';
 import { posesAtTime } from '../state/interpolate';
 import type { PositionMap } from '../state/store';
 
@@ -11,6 +11,8 @@ export interface FrameRenderer {
 export interface SceneDoc {
   performance: Performance;
   performers: readonly Performer[];
+  /** Stage props; drawn by the 2D renderer only (3D skips them for now). */
+  props?: readonly StageProp[];
   formations: readonly Formation[];
   positions: PositionMap;
 }

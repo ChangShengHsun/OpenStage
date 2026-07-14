@@ -42,6 +42,7 @@ function currentDoc(): DocState {
   return {
     performance: s.performance,
     performers: s.performers,
+    props: s.props,
     formations: s.formations,
     positions: s.positions,
     comments: s.comments,
@@ -54,6 +55,7 @@ export function cloneDocAs(doc: DocState, newId: string, newTitle: string): DocS
     ...doc,
     performance: { ...doc.performance, id: newId, title: newTitle },
     formations: doc.formations.map((f) => ({ ...f, performanceId: newId })),
+    props: (doc.props ?? []).map((p) => ({ ...p, performanceId: newId })),
   };
 }
 

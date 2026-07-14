@@ -26,6 +26,7 @@ export function exportFormationPng(): void {
     {
       performance: s.performance,
       performers: s.performers,
+      props: s.props,
       formations: s.formations,
       positions: s.positions,
     },

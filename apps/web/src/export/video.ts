@@ -1,5 +1,6 @@
 import { useEditor } from '../state/store';
 import { formatEightCount, formatTimecode, posesAtTime, showEndMs } from '../state/interpolate';
+import { propOutline } from '../state/props';
 import { safeFilename } from './filename';
 import { messages } from '../i18n';
 import type { Messages } from '../i18n';
@@ -57,6 +58,7 @@ export async function exportPerformanceVideo({
   const doc: SceneDoc = {
     performance: s.performance,
     performers: s.performers,
+    props: s.props,
     formations: s.formations,
     positions: s.positions,
   };
@@ -170,6 +172,37 @@ export function build2dRenderer(
     ctx.fillText(msg.stage.audience, W / 2, flip ? originY - 14 : originY + stageH + 28);
 
     const poses = posesAtTime(doc.formations, doc.positions, tMs);
+
+    // Props: scenery footprints under the dancers.
+    for (const prop of doc.props ?? []) {
+      const pose = poses.get(prop.id);
+      if (pose === undefined) continue;
+      const x = originX + (flip ? stageWidth - pose.x : pose.x) * scale;
+      const y = originY + (flip ? stageHeight - pose.y : pose.y) * scale;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(((pose.rotation + (flip ? 180 : 0)) * Math.PI) / 180);
+      ctx.strokeStyle = prop.color;
+      ctx.fillStyle = prop.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (prop.kind === 'circle') {
+        ctx.ellipse(0, 0, (prop.width / 2) * scale, (prop.height / 2) * scale, 0, 0, Math.PI * 2);
+      } else {
+        const pts = propOutline(prop.kind, prop.width, prop.height);
+        const [x0, y0] = pts[0] ?? [0, 0];
+        ctx.moveTo(x0 * scale, y0 * scale);
+        for (const [px, py] of pts.slice(1)) ctx.lineTo(px * scale, py * scale);
+        ctx.closePath();
+      }
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fill();
+      ctx.restore();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     for (const performer of doc.performers) {
       const pose = poses.get(performer.id);
       if (pose === undefined) continue;

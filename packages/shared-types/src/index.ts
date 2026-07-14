@@ -80,6 +80,25 @@ export interface PerformanceSection {
   name: string;
 }
 
+export type PropKind = 'rect' | 'circle' | 'triangle';
+
+/**
+ * A stage prop (box, platform, banner…). Its footprint is a simple shape in
+ * meters; each formation stores its own position/rotation for it in the same
+ * per-formation position map the performers use (keyed by the prop's id).
+ */
+export interface StageProp {
+  id: string;
+  performanceId: string;
+  name: string;
+  kind: PropKind;
+  /** Display color, hex like "#8fb98f". */
+  color: string;
+  /** Footprint in meters ('circle' draws an ellipse inside width × height). */
+  width: number;
+  height: number;
+}
+
 export interface Formation {
   id: string;
   performanceId: string;

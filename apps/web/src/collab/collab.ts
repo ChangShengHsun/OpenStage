@@ -6,6 +6,7 @@ import type {
   FormationPosition,
   Performance,
   Performer,
+  StageProp,
 } from '@openstage/shared-types';
 import { undoOverride, useEditor } from '../state/store';
 import type { DocState, PositionMap } from '../state/store';
@@ -86,6 +87,7 @@ function syncMapFromRecord(ymap: Y.Map<unknown>, record: Record<string, unknown>
 function docToRecords(s: DocState): {
   meta: Record<string, unknown>;
   performers: Record<string, unknown>;
+  props: Record<string, unknown>;
   formations: Record<string, unknown>;
   positions: Record<string, unknown>;
   comments: Record<string, unknown>;
@@ -99,6 +101,7 @@ function docToRecords(s: DocState): {
   return {
     meta: { ...s.performance } as unknown as Record<string, unknown>,
     performers: Object.fromEntries(s.performers.map((p) => [p.id, p])),
+    props: Object.fromEntries(s.props.map((p) => [p.id, p])),
     formations: Object.fromEntries(s.formations.map((f) => [f.id, f])),
     positions,
     comments: Object.fromEntries(s.comments.map((c) => [c.id, c])),
@@ -110,6 +113,7 @@ function writeDocToY(ydoc: Y.Doc, s: DocState): void {
   ydoc.transact(() => {
     syncMapFromRecord(ydoc.getMap('meta'), records.meta);
     syncMapFromRecord(ydoc.getMap('performers'), records.performers);
+    syncMapFromRecord(ydoc.getMap('props'), records.props);
     syncMapFromRecord(ydoc.getMap('formations'), records.formations);
     syncMapFromRecord(ydoc.getMap('positions'), records.positions);
     syncMapFromRecord(ydoc.getMap('comments'), records.comments);
@@ -136,6 +140,7 @@ function readDocFromY(ydoc: Y.Doc): DocState | null {
   return {
     performance: meta,
     performers,
+    props: [...ydoc.getMap('props').values()] as StageProp[],
     formations: [...formations].sort((a, b) => a.orderIndex - b.orderIndex),
     positions,
     comments,
@@ -261,6 +266,7 @@ export function startCollab(room: string): void {
   const shared = [
     ydoc.getMap('meta'),
     ydoc.getMap('performers'),
+    ydoc.getMap('props'),
     ydoc.getMap('formations'),
     ydoc.getMap('positions'),
     ydoc.getMap('comments'),

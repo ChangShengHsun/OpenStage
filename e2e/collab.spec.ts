@@ -33,6 +33,10 @@ test('two clients collaborate in a room: doc sync, presence, comments', async ({
   await pageB.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(pageA.getByText('note from B')).toBeVisible({ timeout: 10_000 });
 
+  // A adds a prop; B receives it (props sync through their own Y map).
+  await pageA.getByRole('button', { name: 'Add prop' }).click();
+  await expect(pageB.getByRole('option', { name: 'Prop 1' })).toBeVisible({ timeout: 10_000 });
+
   await ctxA.close();
   await ctxB.close();
 });

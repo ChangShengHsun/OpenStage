@@ -764,6 +764,7 @@ function HistorySection(): ReactElement {
             void saveSnapshot(name, {
               performance: s.performance,
               performers: s.performers,
+              props: s.props,
               formations: s.formations,
               positions: s.positions,
               comments: s.comments,
@@ -811,12 +812,124 @@ function HistorySection(): ReactElement {
   );
 }
 
+function PropSection(): ReactElement | null {
+  const t = useT();
+  const props = useEditor((s) => s.props);
+  const selectedPropId = useEditor((s) => s.selectedPropId);
+  const selectedFormationId = useEditor((s) => s.selectedFormationId);
+  const positions = useEditor((s) => s.positions);
+  const updateProp = useEditor((s) => s.updateProp);
+  const removeProp = useEditor((s) => s.removeProp);
+  const setRotation = useEditor((s) => s.setRotation);
+
+  const prop = props.find((p) => p.id === selectedPropId);
+  if (prop === undefined) return null;
+  const rotation = positions[selectedFormationId]?.[prop.id]?.rotation ?? 0;
+
+  return (
+    <>
+      <div className="panel-title">{t.props.sectionTitle}</div>
+      <div className="panel-section">
+        <div className="field">
+          <label htmlFor="prop-name">{t.props.name}</label>
+          <input
+            id="prop-name"
+            type="text"
+            value={prop.name}
+            onChange={(e) => updateProp(prop.id, { name: e.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="prop-kind">{t.props.kind}</label>
+          <select
+            id="prop-kind"
+            value={prop.kind}
+            onChange={(e) => {
+              const kind = e.target.value;
+              if (kind === 'rect' || kind === 'circle' || kind === 'triangle')
+                updateProp(prop.id, { kind });
+            }}
+          >
+            <option value="rect">{t.props.kindRect}</option>
+            <option value="circle">{t.props.kindCircle}</option>
+            <option value="triangle">{t.props.kindTriangle}</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="prop-color">{t.props.color}</label>
+          <input
+            id="prop-color"
+            type="color"
+            value={prop.color}
+            onChange={(e) => updateProp(prop.id, { color: e.target.value })}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div className="field" style={{ flex: 1 }}>
+            <label htmlFor="prop-width">{t.props.widthLabel}</label>
+            <input
+              id="prop-width"
+              type="number"
+              min={0.2}
+              max={30}
+              step={0.1}
+              value={prop.width}
+              onChange={(e) => {
+                const w = num(e.target.value);
+                if (w !== null) updateProp(prop.id, { width: Math.max(0.2, w) });
+              }}
+            />
+          </div>
+          <div className="field" style={{ flex: 1 }}>
+            <label htmlFor="prop-height">{t.props.heightLabel}</label>
+            <input
+              id="prop-height"
+              type="number"
+              min={0.2}
+              max={30}
+              step={0.1}
+              value={prop.height}
+              onChange={(e) => {
+                const h = num(e.target.value);
+                if (h !== null) updateProp(prop.id, { height: Math.max(0.2, h) });
+              }}
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="prop-rotation">{t.props.rotationLabel}</label>
+          <input
+            id="prop-rotation"
+            type="number"
+            step={5}
+            value={rotation}
+            onChange={(e) => {
+              const deg = num(e.target.value);
+              if (deg !== null) setRotation(selectedFormationId, prop.id, deg);
+            }}
+          />
+        </div>
+        <button type="button" className="btn" onClick={() => removeProp(prop.id)}>
+          {t.props.remove}
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function PropertiesPanel(): ReactElement {
   const hasPerformerSelection = useEditor((s) => s.selectedPerformerIds.length > 0);
+  const hasPropSelection = useEditor((s) => s.selectedPropId !== null);
 
   return (
     <aside className="props-panel side-panel">
-      {hasPerformerSelection ? <PerformerSection /> : <FormationSection />}
+      {hasPropSelection ? (
+        <PropSection />
+      ) : hasPerformerSelection ? (
+        <PerformerSection />
+      ) : (
+        <FormationSection />
+      )}
       <StageSection />
       <HistorySection />
     </aside>

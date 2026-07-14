@@ -7,6 +7,8 @@ import type {
   FormationPosition,
   Performance,
   Performer,
+  PropKind,
+  StageProp,
 } from '@openstage/shared-types';
 import {
   DEFAULT_FORMATION_DURATION_MS,
@@ -20,6 +22,7 @@ import { reindexByStart } from './formationOrder';
 import { alignSpots, distributeSpots, mirrorAcrossX } from './formationTransform';
 import type { Spot } from './formationTransform';
 import { byOrder } from './interpolate';
+import { newProp } from './props';
 import { templateSpots } from './templates';
 import type { TemplateKind } from './templates';
 import type { RosterRow } from './csv';
@@ -30,6 +33,8 @@ export type PositionMap = Record<string, Record<string, FormationPosition>>;
 export interface DocState {
   performance: Performance;
   performers: Performer[];
+  /** Stage props; their per-formation positions live in `positions` too. */
+  props: StageProp[];
   formations: Formation[];
   positions: PositionMap;
   comments: DocComment[];
@@ -38,6 +43,8 @@ export interface DocState {
 interface EditorState extends DocState {
   selectedFormationId: string;
   selectedPerformerIds: string[];
+  /** Selected prop (single-select; mutually exclusive with performers). */
+  selectedPropId: string | null;
   playheadMs: number;
   isPlaying: boolean;
   /** Session-only playback speed multiplier, 0.5–2 (not persisted). */
@@ -55,6 +62,12 @@ interface EditorState extends DocState {
   importRoster: (rows: readonly RosterRow[]) => void;
   removePerformer: (id: string) => void;
   updatePerformer: (id: string, patch: Partial<Omit<Performer, 'id' | 'performanceId'>>) => void;
+
+  addProp: (kind: PropKind) => void;
+  removeProp: (id: string) => void;
+  updateProp: (id: string, patch: Partial<Omit<StageProp, 'id' | 'performanceId'>>) => void;
+  /** Select a prop (null = deselect); clears the performer selection. */
+  selectProp: (id: string | null) => void;
 
   addFormation: () => void;
   /** Insert a copy of the selected formation right after it (Ctrl+D). */
@@ -199,6 +212,7 @@ export function createInitialDoc(): DocState {
       countSegments: [],
     },
     performers: [],
+    props: [],
     formations: [
       {
         id: formationId,
@@ -238,6 +252,8 @@ function snapshotDoc(s: DocState): DocState {
   return {
     performance: { ...s.performance, beatMarkersMs: [...s.performance.beatMarkersMs] },
     performers: s.performers.map((p) => ({ ...p })),
+    // ?? []: version snapshots saved before props existed lack the field.
+    props: (s.props ?? []).map((p) => ({ ...p })),
     formations: s.formations.map((f) => ({ ...f })),
     positions: Object.fromEntries(
       Object.entries(s.positions).map(([fid, byPerformer]) => [
@@ -288,6 +304,7 @@ export const useEditor = create<EditorState>()(
         // docs get re-pointed by the subscribe guard below after rehydration.
         selectedFormationId: initialDoc.formations[0]?.id ?? '',
         selectedPerformerIds: [],
+        selectedPropId: null,
         playheadMs: 0,
         isPlaying: false,
         playbackRate: 1,
@@ -418,6 +435,54 @@ export const useEditor = create<EditorState>()(
             performers: s.performers.map((p) => (p.id === id ? { ...p, ...patch } : p)),
           })),
 
+        addProp: (kind) =>
+          mutateDoc((s) => {
+            const prop = newProp(newId(), s.performance.id, s.props.length, kind);
+            // Center stage in every formation; drag it per formation from there.
+            const positions: PositionMap = { ...s.positions };
+            for (const f of s.formations) {
+              positions[f.id] = {
+                ...positions[f.id],
+                [prop.id]: {
+                  formationId: f.id,
+                  performerId: prop.id,
+                  x: s.performance.stageWidth / 2,
+                  y: s.performance.stageHeight / 2,
+                  rotation: 0,
+                },
+              };
+            }
+            return {
+              props: [...s.props, prop],
+              positions,
+              selectedPropId: prop.id,
+              selectedPerformerIds: [],
+            };
+          }),
+
+        removeProp: (id) =>
+          mutateDoc((s) => {
+            const positions: PositionMap = Object.fromEntries(
+              Object.entries(s.positions).map(([fid, byId]) => {
+                const rest = { ...byId };
+                delete rest[id];
+                return [fid, rest];
+              }),
+            );
+            return {
+              props: s.props.filter((p) => p.id !== id),
+              positions,
+              selectedPropId: s.selectedPropId === id ? null : s.selectedPropId,
+            };
+          }),
+
+        updateProp: (id, patch) =>
+          mutateDoc((s) => ({
+            props: s.props.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+          })),
+
+        selectProp: (id) => set({ selectedPropId: id, selectedPerformerIds: [] }),
+
         addFormation: () =>
           mutateDoc((s) => {
             const ordered = [...s.formations].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -479,6 +544,10 @@ export const useEditor = create<EditorState>()(
 
         deleteSelection: () => {
           const s = get();
+          if (s.selectedPropId !== null) {
+            get().removeProp(s.selectedPropId);
+            return;
+          }
           if (s.selectedPerformerIds.length > 0) {
             // One undo step no matter how many performers go.
             mutateDoc((st) => {
@@ -792,7 +861,7 @@ export const useEditor = create<EditorState>()(
 
         selectFormation: (id) => set({ selectedFormationId: id }),
 
-        setPerformerSelection: (ids) => set({ selectedPerformerIds: ids }),
+        setPerformerSelection: (ids) => set({ selectedPerformerIds: ids, selectedPropId: null }),
 
         copyPositionsFrom: (sourceFormationId) =>
           mutateDoc((s) => {
@@ -846,6 +915,7 @@ export const useEditor = create<EditorState>()(
 
         selectPerformer: (id, additive) =>
           set((s) => ({
+            selectedPropId: null,
             selectedPerformerIds: additive
               ? s.selectedPerformerIds.includes(id)
                 ? s.selectedPerformerIds.filter((p) => p !== id)
@@ -853,7 +923,7 @@ export const useEditor = create<EditorState>()(
               : [id],
           })),
 
-        clearPerformerSelection: () => set({ selectedPerformerIds: [] }),
+        clearPerformerSelection: () => set({ selectedPerformerIds: [], selectedPropId: null }),
 
         addBeatMarker: (ms) =>
           mutateDoc((s) => ({
@@ -970,6 +1040,7 @@ export const useEditor = create<EditorState>()(
             ...snapshotDoc(doc),
             selectedFormationId: first?.id ?? '',
             selectedPerformerIds: [],
+            selectedPropId: null,
             playheadMs: 0,
             isPlaying: false,
           } as EditorState);
@@ -1003,6 +1074,7 @@ export const useEditor = create<EditorState>()(
       partialize: (s) => ({
         performance: s.performance,
         performers: s.performers,
+        props: s.props,
         formations: s.formations,
         positions: s.positions,
         comments: s.comments,
@@ -1021,7 +1093,7 @@ export const useEditor = create<EditorState>()(
                 countSegments: p.performance.countSegments ?? [],
               }
             : current.performance;
-        return { ...current, ...p, performance, comments: p.comments ?? [] };
+        return { ...current, ...p, performance, comments: p.comments ?? [], props: p.props ?? [] };
       },
     },
   ),
