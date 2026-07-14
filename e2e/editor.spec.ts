@@ -58,8 +58,32 @@ function makeWav(): Buffer {
 }
 
 test.beforeEach(async ({ page }) => {
+  // The suite exercises the full toolset — force expert mode (default is
+  // easy). Patch, don't overwrite: layout widths must survive reloads.
+  await page.addInitScript(() => {
+    const raw = localStorage.getItem('openstage-layout');
+    const parsed = (raw !== null ? JSON.parse(raw) : { state: {}, version: 0 }) as {
+      state: Record<string, unknown>;
+      version: number;
+    };
+    parsed.state = { ...parsed.state, uiMode: 'expert' };
+    localStorage.setItem('openstage-layout', JSON.stringify(parsed));
+  });
   await page.goto('/');
   await page.getByText('Add performer').waitFor();
+});
+
+test('easy mode hides power tools until expert is chosen', async ({ page }) => {
+  await expect(page.getByRole('button', { name: 'Add prop' })).toBeVisible();
+  await page.getByRole('button', { name: 'Preferences' }).click();
+  await page.locator('#prefs-uimode').selectOption('easy');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Add prop' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Save cast as crew' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Tap beat' })).toBeHidden();
+  // core flow stays visible
+  await expect(page.getByRole('button', { name: 'Add performer' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export…' })).toBeVisible();
 });
 
 test('app shell renders', async ({ page }) => {

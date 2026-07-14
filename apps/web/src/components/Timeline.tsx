@@ -266,7 +266,7 @@ export function Timeline({
         )}
         <button
           type="button"
-          className="btn edit-only"
+          className="btn edit-only expert-only-ui"
           title={t.timeline.tapBeatTitle}
           onClick={() => addBeatMarker(useEditor.getState().playheadMs)}
         >
@@ -300,6 +300,7 @@ export function Timeline({
         <select
           aria-label={t.topbar.playbackSpeedAria}
           title={t.topbar.playbackSpeedAria}
+          className="expert-only-ui"
           value={playbackRate.toFixed(1)}
           style={{ width: 66 }}
           onChange={(e) => setPlaybackRate(Number(e.target.value))}

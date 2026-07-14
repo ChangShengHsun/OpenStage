@@ -98,6 +98,10 @@ export const en = {
     openAria: 'Preferences',
     title: 'Preferences',
     close: 'Close',
+    uiMode: 'Interface',
+    uiModeEasy: 'Easy — the essentials',
+    uiModeExpert: 'Expert — every tool',
+    uiModeNote: 'Easy hides power tools (crews, props, badges, untangle, presets, tap tempo…)',
   },
 
   export: {

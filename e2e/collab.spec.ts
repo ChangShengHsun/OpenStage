@@ -1,4 +1,15 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+/** The suite uses expert-only tools (props) — force expert mode (default easy). */
+async function forceExpert(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'openstage-layout',
+      JSON.stringify({ state: { uiMode: 'expert' }, version: 0 }),
+    );
+  });
+}
 
 test('two clients collaborate in a room: doc sync, presence, comments', async ({ browser }) => {
   const room = `e2e-${Date.now()}`;
@@ -8,6 +19,8 @@ test('two clients collaborate in a room: doc sync, presence, comments', async ({
   const ctxB = await browser.newContext();
   const pageA = await ctxA.newPage();
   const pageB = await ctxB.newPage();
+  await forceExpert(pageA);
+  await forceExpert(pageB);
 
   // A joins first and creates content.
   await pageA.goto(url);

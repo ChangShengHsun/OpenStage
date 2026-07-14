@@ -99,6 +99,10 @@ export const zh: Messages = {
     openAria: '偏好設定',
     title: '偏好設定',
     close: '關閉',
+    uiMode: '介面模式',
+    uiModeEasy: '簡易——只留核心功能',
+    uiModeExpert: '完整——所有工具',
+    uiModeNote: '簡易模式會隱藏進階工具（班底、道具、徽章、解交叉、隊形庫、打拍校正…）',
   },
 
   export: {

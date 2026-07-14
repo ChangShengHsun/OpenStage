@@ -26,10 +26,17 @@ interface LayoutState {
   timelineHeight: number;
   /** Drags land on the 0.5m lattice (grid corners and cell centers). */
   snapToGrid: boolean;
+  /**
+   * 'easy' hides the power tools (crews, props, badges, groups, untangle,
+   * presets, tap tempo…) so a first-time user sees only the core flow;
+   * 'expert' shows everything. New features default to expert-only.
+   */
+  uiMode: 'easy' | 'expert';
   setCastWidth: (px: number) => void;
   setPropsWidth: (px: number) => void;
   setTimelineHeight: (px: number) => void;
   setSnapToGrid: (on: boolean) => void;
+  setUiMode: (mode: 'easy' | 'expert') => void;
 }
 
 export const useLayout = create<LayoutState>()(
@@ -39,10 +46,12 @@ export const useLayout = create<LayoutState>()(
       propsWidth: DEFAULT_PROPS_W,
       timelineHeight: DEFAULT_TIMELINE_H,
       snapToGrid: false,
+      uiMode: 'easy',
       setCastWidth: (px) => set({ castWidth: clampWidth(px) }),
       setPropsWidth: (px) => set({ propsWidth: clampWidth(px) }),
       setTimelineHeight: (px) => set({ timelineHeight: clampTimelineH(px) }),
       setSnapToGrid: (on) => set({ snapToGrid: on }),
+      setUiMode: (mode) => set({ uiMode: mode }),
     }),
     { name: 'openstage-layout' },
   ),

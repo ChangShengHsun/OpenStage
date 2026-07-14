@@ -84,7 +84,7 @@ function PerformerSection(): ReactElement | null {
             onChange={(e) => updatePerformer(performer.id, { color: e.target.value })}
           />
         </div>
-        <div className="field">
+        <div className="field expert-only-ui">
           <label htmlFor="perf-badge" title={t.performer.badgeTitle}>
             {t.performer.badgeLabel}
           </label>
@@ -98,7 +98,7 @@ function PerformerSection(): ReactElement | null {
             }
           />
         </div>
-        <div className="field">
+        <div className="field expert-only-ui">
           <label htmlFor="perf-tags" title={t.performer.tagsTitle}>
             {t.performer.tagsLabel}
           </label>
@@ -115,7 +115,10 @@ function PerformerSection(): ReactElement | null {
             }}
           />
         </div>
-        <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}>
+        <label
+          className="expert-only-ui"
+          style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12 }}
+        >
           <input
             type="checkbox"
             checked={pathPerformerId === performer.id}
@@ -204,18 +207,18 @@ function MultiSelectSection({ count }: { count: number }): ReactElement {
       <div className="panel-title">{t.performer.titleMany}</div>
       <div className="panel-section">
         <p className="empty-note">{t.performer.multiSelected(count)}</p>
-        <span className="field-label">{t.performer.tools}</span>
+        <span className="field-label expert-only-ui">{t.performer.tools}</span>
         {count === 2 && (
           <button
             type="button"
-            className="btn"
+            className="btn expert-only-ui"
             title={t.performer.swapTitle}
             onClick={swapSelected}
           >
             {t.performer.swap}
           </button>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="expert-only-ui" style={{ display: 'flex', gap: 8 }}>
           <button
             type="button"
             className="btn"
@@ -236,7 +239,7 @@ function MultiSelectSection({ count }: { count: number }): ReactElement {
           </button>
         </div>
         {count >= 3 && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="expert-only-ui" style={{ display: 'flex', gap: 8 }}>
             <button
               type="button"
               className="btn"
@@ -450,7 +453,7 @@ function FormationSection(): ReactElement | null {
             </button>
           </div>
         </div>
-        <div className="field">
+        <div className="field expert-only-ui">
           <label htmlFor="form-preset">{t.presets.label}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <select
@@ -504,7 +507,7 @@ function FormationSection(): ReactElement | null {
         </div>
         <button
           type="button"
-          className="btn"
+          className="btn expert-only-ui"
           disabled={isFirst || !hasPerformers}
           title={isFirst ? t.formation.untangleFirstTitle : t.formation.untangleTitle}
           onClick={untangleFromPrevious}
@@ -513,7 +516,7 @@ function FormationSection(): ReactElement | null {
         </button>
         <button
           type="button"
-          className="btn"
+          className="btn expert-only-ui"
           disabled={!hasPerformers}
           title={t.formation.mirrorTitle}
           onClick={mirrorFormation}
@@ -547,7 +550,7 @@ function FormationSection(): ReactElement | null {
             ))}
           </div>
         )}
-        <div className="field">
+        <div className="field expert-only-ui">
           <label htmlFor="form-copy-from">{t.formation.copyFromLabel}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <select
@@ -781,7 +784,7 @@ export function PropertiesPanel(): ReactElement {
         <FormationSection />
       )}
       <StageSettingsDialog />
-      <details className="panel-fold">
+      <details className="panel-fold expert-only-ui">
         <summary>{t.history.title}</summary>
         <HistorySection />
       </details>

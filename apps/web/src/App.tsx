@@ -26,6 +26,7 @@ export function App(): ReactElement {
   const timelineHeight = useLayout((s) => s.timelineHeight);
   const snapToGrid = useLayout((s) => s.snapToGrid);
   const setSnapToGrid = useLayout((s) => s.setSnapToGrid);
+  const uiMode = useLayout((s) => s.uiMode);
   const { togglePlay } = usePlayback();
   useAppHotkeys(togglePlay);
 
@@ -50,7 +51,7 @@ export function App(): ReactElement {
 
   return (
     <div
-      className={`app${isViewMode ? ' view-mode' : ''}`}
+      className={`app${isViewMode ? ' view-mode' : ''}${uiMode === 'easy' ? ' ui-easy' : ''}`}
       // View mode's 0/1fr/0 columns come from CSS; don't override them.
       style={
         isViewMode

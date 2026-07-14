@@ -565,6 +565,11 @@ input[type='color'] {
   padding: 12px 16px;
 }
 
+/* Easy mode hides the power tools; expert shows everything (⚙ toggle). */
+.ui-easy .expert-only-ui {
+  display: none !important;
+}
+
 /* Generic dialog body: a single column of fields (settings dialogs). */
 .dialog-fields {
   display: flex;

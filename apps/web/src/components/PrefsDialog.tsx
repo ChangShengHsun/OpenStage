@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { getLocalUser, setLocalUserName } from '../state/user';
 import { setAwarenessUser } from '../collab/collab';
+import { useLayout } from '../state/layout';
 import { useLocaleStore, useT } from '../i18n';
 
 /**
@@ -13,6 +14,8 @@ export function PrefsDialog(): ReactElement {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
+  const uiMode = useLayout((s) => s.uiMode);
+  const setUiMode = useLayout((s) => s.setUiMode);
   const [userName, setUserName] = useState(() => getLocalUser().name);
 
   return (
@@ -50,6 +53,18 @@ export function PrefsDialog(): ReactElement {
                 setAwarenessUser(user.name, user.color);
               }}
             />
+          </div>
+          <div className="field">
+            <label htmlFor="prefs-uimode">{t.prefs.uiMode}</label>
+            <select
+              id="prefs-uimode"
+              value={uiMode}
+              onChange={(e) => setUiMode(e.target.value === 'expert' ? 'expert' : 'easy')}
+            >
+              <option value="easy">{t.prefs.uiModeEasy}</option>
+              <option value="expert">{t.prefs.uiModeExpert}</option>
+            </select>
+            <span className="mono">{t.prefs.uiModeNote}</span>
           </div>
           <div className="field">
             <label htmlFor="prefs-locale">{t.locale.label}</label>
