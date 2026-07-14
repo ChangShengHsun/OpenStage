@@ -137,6 +137,18 @@ export const zh: Messages = {
     removeFromCast: '從名單移除',
   },
 
+  crews: {
+    title: '班底名單',
+    save: '把演出者存成班底',
+    saveTitle: '保存這份名單（姓名、角色、顏色、分組），其他編舞可直接載入',
+    savePrompt: '班底名稱：',
+    defaultName: '我的班底',
+    load: '載入',
+    loadTitle: '把這個班底的所有人加入演出者',
+    loadAria: (name: string): string => `載入班底 ${name}`,
+    deleteAria: (name: string): string => `刪除班底 ${name}`,
+  },
+
   props: {
     title: '道具',
     add: '新增道具',

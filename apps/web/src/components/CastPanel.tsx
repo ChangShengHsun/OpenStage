@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useEditor } from '../state/store';
 import { parseRoster } from '../state/csv';
+import { deleteCrew, listCrews, saveCrew } from '../state/crews';
+import type { Crew } from '../state/crews';
 import { useT } from '../i18n';
 
 export function CastPanel(): ReactElement {
@@ -19,6 +21,7 @@ export function CastPanel(): ReactElement {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [importNote, setImportNote] = useState('');
+  const [crews, setCrews] = useState<Crew[]>(() => listCrews());
 
   // Every group name in use, with its members — one chip per group.
   const groups = new Map<string, string[]>();
@@ -117,6 +120,50 @@ export function CastPanel(): ReactElement {
           })}
         </div>
       )}
+      <div className="panel-title">{t.crews.title}</div>
+      <div className="panel-section">
+        <button
+          type="button"
+          className="btn"
+          disabled={performers.length === 0}
+          title={t.crews.saveTitle}
+          onClick={() => {
+            const name = window.prompt(t.crews.savePrompt, t.crews.defaultName);
+            if (name === null || name.trim() === '') return;
+            saveCrew(name.trim(), performers);
+            setCrews(listCrews());
+          }}
+        >
+          {t.crews.save}
+        </button>
+        {crews.map((crew) => (
+          <div key={crew.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <span className="cast-name" style={{ flex: 1 }}>
+              {crew.name} · {crew.members.length}
+            </span>
+            <button
+              type="button"
+              className="btn"
+              title={t.crews.loadTitle}
+              aria-label={t.crews.loadAria(crew.name)}
+              onClick={() => importRoster(crew.members)}
+            >
+              {t.crews.load}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              aria-label={t.crews.deleteAria(crew.name)}
+              onClick={() => {
+                deleteCrew(crew.id);
+                setCrews(listCrews());
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
       <div className="panel-title">{t.props.title}</div>
       <div className="panel-section">
         <button

@@ -137,6 +137,18 @@ export const en = {
     removeFromCast: 'Remove from cast',
   },
 
+  crews: {
+    title: 'Crews',
+    save: 'Save cast as crew',
+    saveTitle: 'Keep this roster (names, roles, colors, groups) for other choreographies',
+    savePrompt: 'Crew name:',
+    defaultName: 'My crew',
+    load: 'Load',
+    loadTitle: 'Add everyone in this crew to the cast',
+    loadAria: (name: string): string => `Load crew ${name}`,
+    deleteAria: (name: string): string => `Delete crew ${name}`,
+  },
+
   props: {
     title: 'Props',
     add: 'Add prop',

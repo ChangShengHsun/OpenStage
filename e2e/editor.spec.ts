@@ -811,6 +811,36 @@ test('props: add, edit, drag, persist and delete', async ({ page }) => {
   await expect(page.getByRole('option', { name: 'Box' })).toBeHidden();
 });
 
+test('crews: save the cast, load it into a fresh choreography with groups', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  // tag Dancer 1 so we can check groups survive the crew round-trip
+  await page.getByText('Dancer 1').first().click();
+  await page.getByLabel('Groups (comma separated)').fill('front row');
+  await page.getByLabel('Groups (comma separated)').blur();
+
+  page.once('dialog', (dialog) => void dialog.accept('Team 2026'));
+  await page.getByRole('button', { name: 'Save cast as crew' }).click();
+  await expect(page.getByText('Team 2026 · 2')).toBeVisible();
+
+  // fresh choreography, then load the crew into it
+  await page.getByRole('button', { name: 'Library', exact: true }).click();
+  await page.getByRole('button', { name: 'New choreography' }).click();
+  await expect(page.getByRole('listbox', { name: 'Performers' }).getByRole('option')).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: 'Load crew Team 2026' }).click();
+  await expect(page.getByRole('listbox', { name: 'Performers' }).getByRole('option')).toHaveCount(
+    2,
+  );
+  // the group chip came along
+  await expect(page.getByRole('button', { name: 'Select group front row' })).toBeVisible();
+
+  // delete the crew
+  await page.getByRole('button', { name: 'Delete crew Team 2026' }).click();
+  await expect(page.getByText('Team 2026 · 2')).toBeHidden();
+});
+
 test('library: create, switch, duplicate and delete choreographies', async ({ page }) => {
   await page.getByLabel('Performance title').fill('Show A');
   await page.getByText('Add performer').click();

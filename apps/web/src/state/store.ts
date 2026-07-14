@@ -390,6 +390,8 @@ export const useEditor = create<EditorState>()(
                 '#e8a84c',
               role: row.role,
               avatarUrl: null,
+              // Crews restore group tags; CSV rows never carry them.
+              ...(row.tags !== undefined && row.tags.length > 0 ? { tags: row.tags } : {}),
             }));
             const positions: PositionMap = { ...s.positions };
             added.forEach((performer, i) => {

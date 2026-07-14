@@ -10,6 +10,8 @@ export interface RosterRow {
   role: string;
   /** Hex like #aabbcc when the file provides a valid one, otherwise null. */
   color: string | null;
+  /** Group names — crews carry them; CSV files don't set this. */
+  tags?: string[];
 }
 
 const HEX_COLOR = /^#?[0-9a-fA-F]{6}$/;
