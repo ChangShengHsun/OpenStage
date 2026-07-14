@@ -70,10 +70,11 @@ e2e/                    Playwright suite (15 tests). Unit tests live next to
 
 - ✅ Verified in browser + CI: MVP, V1, V2, and video export. 32 unit +
   15 e2e green; lint/typecheck/build green.
-- ⚠️ UNVERIFIED: everything needing Docker — `apps/api`, Postgres schema,
-  docker-compose, the web/collab Dockerfiles. First session on a machine
-  with Docker: `docker compose up`, run migrations, hit `/api/health`,
-  then remove the "not integration-tested" caveats from README and code.
+- ✅ Docker stack VERIFIED 2026-07-13: all six services up, `001_init.sql`
+  applied, `/api/health` responds. The API is still a skeleton (health only);
+  auth/CRUD/media are V4. Dockerfile gotcha already fixed: in-image pnpm
+  installs need `--ignore-scripts` + explicit `--filter` per workspace
+  package (deps-only packages get no devDependencies, so tsc goes missing).
 
 ## 5. Traps that already bit us (do not rediscover these)
 
@@ -142,16 +143,13 @@ remaining work is translation. Do not restructure anything.
   History, Comments, Timeline) — check for overflow/truncation, since
   Chinese strings are often shorter but panels are narrow.
 
-### V3a — rule-based formation suggestions
+### V3a — rule-based formation suggestions — DONE (2026-07-13, by Fable)
 
-Pure functions in a new `apps/web/src/state/suggest.ts` (or extend
-`templates.ts`): given performer count + stage size, score/derive candidate
-next formations (spacing balance, symmetry, minimal travel from current —
-reuse `planTransition` for travel cost). UI: a "Suggest" section in
-PropertiesPanel offering 2–3 candidates with previews; applying one is a
-normal history-recorded position write. **No ML, no network calls** — rules
-only, that's the spec. Acceptance: unit tests for the scoring math; e2e:
-click suggest, apply, positions change and undo restores.
+Shipped as `apps/web/src/state/suggest.ts` + a Suggest section in the
+Formation panel, exactly per the spec above (6 shape families, travel via
+Hungarian assignment, crowding-gated spacing, symmetry; 6 unit tests + e2e).
+Scoring weights and tolerances are constants at the top of suggest.ts —
+tune there if Ivan reports "plausible but bad" suggestions.
 
 ### V3b — GIF export (video export is DONE)
 

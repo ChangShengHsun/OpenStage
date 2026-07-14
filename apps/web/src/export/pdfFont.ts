@@ -9,7 +9,7 @@ const VFS_NAME = 'NotoSansTC-subset.ttf';
 
 /** Does the text contain CJK ideographs, kana, or fullwidth punctuation? */
 export function hasCjk(text: string): boolean {
-  return /[⺀-鿿豈-﫿　-〿＀-￯]/.test(text);
+  return /[\u2E80-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/.test(text);
 }
 
 let fontBase64: string | null = null;

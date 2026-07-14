@@ -54,11 +54,20 @@ export function ExportDialog(): ReactElement {
       .finally(() => setVideoProgress(null));
   };
 
+  const showError = (err: unknown): void => {
+    setNote(err instanceof Error ? err.message : String(err));
+    window.setTimeout(() => setNote(''), 4000);
+  };
+
   const startExport = (): void => {
-    if (kind === 'pdf-charts') void import('../export/pdf').then((m) => m.exportPerformancePdf());
+    // PDF exports are async (the CJK font may need downloading) — surface
+    // failures in the dialog instead of a silent rejection.
+    if (kind === 'pdf-charts')
+      import('../export/pdf').then((m) => m.exportPerformancePdf()).catch(showError);
     else if (kind === 'pdf-sheets')
-      void import('../export/walkSheets').then((m) => m.exportWalkSheetsPdf());
-    else if (kind === 'png') void import('../export/png').then((m) => m.exportFormationPng());
+      import('../export/walkSheets').then((m) => m.exportWalkSheetsPdf()).catch(showError);
+    else if (kind === 'png')
+      import('../export/png').then((m) => m.exportFormationPng()).catch(showError);
     else startVideo();
   };
 

@@ -18,6 +18,8 @@ Status legend: ✅ done · ⬜ open · 🔶 **needs Fable** (see "Which need Fab
 - ✅ **Performer badge** — one CJK char / up to 4 letters inside the 2D mark
   and as a paper tag on the face in 3D (Ivan-requested).
 - ⬜ **Snap-to-grid toggle** (S) — 0.5m grid snapping while dragging.
+- ✅ **Delete key + clipboard hotkeys** — Delete/Backspace, Ctrl+C/V positions,
+  Ctrl+A, Ctrl+D duplicate formation, Escape (2026-07-13).
 
 ## Timeline & playback
 
@@ -33,8 +35,9 @@ Status legend: ✅ done · ⬜ open · 🔶 **needs Fable** (see "Which need Fab
 
 ## Performers & cast
 
-- ⬜ **Performer groups/tags** (M) — "front row", "flyers"; filter highlight,
-  per-group accents, template-to-a-group.
+- ✅ **Performer groups/tags** (2026-07-13) — comma-separated tags on each
+  performer; Cast-panel chips select the whole group in one click (then all
+  group ops — align/distribute/templates/group-drag — just work).
 - ⬜ **Alternates / understudies** (M) — mark a performer inactive without
   deleting their positions (weekly attendance changes).
 - ✅ **Per-performer path view** — "Show whole-show path" in the performer
@@ -46,10 +49,12 @@ Status legend: ✅ done · ⬜ open · 🔶 **needs Fable** (see "Which need Fab
 - ✅ **Individual walk sheets PDF** — one page per performer (numbered route +
   table); PDF-type picker next to Export PDF. CJK text is skipped (jsPDF has
   no CJK font — embedding a subset font is the known upgrade).
-- ⬜ **PNG snapshot of current formation** (S) — one button, reuses the video
-  exporter's draw function.
+- ✅ **PNG snapshot of current formation** (2026-07-13) — export-dialog entry,
+  reuses the 2D video renderer frozen at the formation start.
 - ⬜ **GIF export** (M) — reuse the exporter's frame draw + a small encoder
   (`gifenc`), render offline ~12fps/640px. Mechanical.
+- ✅ **PDF 中文** (2026-07-13) — bundled Noto Sans TC subset (Big5 + Latin,
+  4.8MB lazy asset); embedded only when the doc contains CJK.
 
 ## 3D
 
@@ -60,17 +65,15 @@ Status legend: ✅ done · ⬜ open · 🔶 **needs Fable** (see "Which need Fab
 
 - ⬜ **Comment resolve/threads** (M) — resolving keeps old notes from drowning
   new ones.
-- ⬜ **Follow peer mode** (M) — click a peer's avatar to follow their playhead
-  and selection (teacher walks the team through the piece remotely).
+- ✅ **Follow peer mode** (2026-07-13) — click a peer's presence dot to mirror
+  their playhead + selected formation live (amber ring while following).
 
 ## Big / design-first
 
-- 🔶 **Rule-based formation suggestions** (M–L) — roadmap V3a. Given the cast
-  and stage, propose 2–3 candidate next formations scored by spacing balance,
-  symmetry, and minimal travel (reuse `planTransition`). **Needs Fable:** the
-  hard part is the _scoring heuristic and taste_ — a weak model ships
-  suggestions that look plausible and are actually bad, the same failure class
-  as the auto-BPM detector Ivan rejected. No ML, no network — rules only.
+- ✅ **Rule-based formation suggestions** (2026-07-13, by Fable) — roadmap
+  V3a. `state/suggest.ts`: 6 shape families scored by travel (Hungarian
+  assignment) + spacing (crowding-gated) + symmetry; top-3 with mini previews
+  in the Formation panel. Tuning knobs live as constants in that file.
 - 🔶 **Stage lighting + light plot / cue sheet (編光表)** (L) — colored stage
   lights + timeline cues. A real subsystem (shared-types, store, 2D overlay,
   3D `SpotLight` wash, cue interpolation, PDF cue sheet). **Needs Fable for

@@ -102,7 +102,8 @@ export const en = {
     badgeLabel: 'Badge (inside the mark)',
     badgeTitle: 'One CJK character or up to 4 letters — shown in the 2D mark and on the face in 3D',
     tagsLabel: 'Groups (comma separated)',
-    tagsTitle: 'Group names like "front row, flyers" — click a group in the Cast panel to select everyone in it',
+    tagsTitle:
+      'Group names like "front row, flyers" — click a group in the Cast panel to select everyone in it',
     tagsPlaceholder: 'e.g. front row, flyers',
     showPath: 'Show whole-show path',
     removeFromCast: 'Remove from cast',

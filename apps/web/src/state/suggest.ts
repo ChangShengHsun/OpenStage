@@ -78,9 +78,7 @@ function candidateSpots(kind: SuggestionKind, count: number, w: number, h: numbe
 export function scoreSpacing(spots: readonly Spot[]): number {
   if (spots.length < 2) return 1;
   const nearest = spots.map((a, i) =>
-    Math.min(
-      ...spots.filter((_, j) => j !== i).map((b) => Math.hypot(a.x - b.x, a.y - b.y)),
-    ),
+    Math.min(...spots.filter((_, j) => j !== i).map((b) => Math.hypot(a.x - b.x, a.y - b.y))),
   );
   const mean = nearest.reduce((s, d) => s + d, 0) / nearest.length;
   if (mean === 0) return 0;
@@ -149,9 +147,7 @@ export function suggestFormations(
     });
 
     const score =
-      travelScore * 0.45 +
-      scoreSpacing(spots) * 0.3 +
-      scoreSymmetry(spots, stageWidth) * 0.25;
+      travelScore * 0.45 + scoreSpacing(spots) * 0.3 + scoreSymmetry(spots, stageWidth) * 0.25;
     return { kind, positions, score };
   });
 

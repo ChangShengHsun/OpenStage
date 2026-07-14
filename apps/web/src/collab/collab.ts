@@ -205,7 +205,10 @@ function applyFollowedView(): void {
   const view = peer.view;
   if (view === null) return;
   const s = useEditor.getState();
-  if (view.formationId !== s.selectedFormationId && s.formations.some((f) => f.id === view.formationId)) {
+  if (
+    view.formationId !== s.selectedFormationId &&
+    s.formations.some((f) => f.id === view.formationId)
+  ) {
     s.selectFormation(view.formationId);
   }
   if (Math.abs(s.playheadMs - view.playheadMs) > 40) {

@@ -21,9 +21,7 @@ function num(value: string): number | null {
 
 /** "front, flyers" -> unique trimmed group names (CJK commas count too). */
 function parseTags(text: string): string[] {
-  return [...new Set(text.split(/[,，、]/).map((part) => part.trim()))].filter(
-    (tag) => tag !== '',
-  );
+  return [...new Set(text.split(/[,，、]/).map((part) => part.trim()))].filter((tag) => tag !== '');
 }
 
 function PerformerSection(): ReactElement | null {
@@ -445,10 +443,7 @@ function FormationSection(): ReactElement | null {
         {suggestions !== null && suggestions.length > 0 && (
           <div className="field" aria-label={t.suggest.listAria}>
             {suggestions.map((suggestion) => (
-              <div
-                key={suggestion.kind}
-                style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-              >
+              <div key={suggestion.kind} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <SuggestionPreview suggestion={suggestion} />
                 <span style={{ flex: 1, fontSize: 12 }}>{t.suggest.kinds[suggestion.kind]}</span>
                 <button
