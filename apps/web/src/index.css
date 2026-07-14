@@ -405,6 +405,13 @@ input[type='color'] {
   min-width: 40px;
 }
 
+.snap-toggle {
+  position: absolute;
+  top: 10px;
+  right: 58px;
+  z-index: 2;
+}
+
 /* ---- View-only mode --------------------------------------------------- */
 
 .app.view-mode {

@@ -244,6 +244,8 @@ export const zh: Messages = {
     tapHint: '繼續點擊…',
     resetTap: '重來',
     applyBpm: (bpm: number): string => `套用 ${bpm}`,
+    snap: '吸附',
+    snapTitle: '網格吸附：拖曳時自動對齊格點或格子中心（0.5m 間距）',
     canvasAria: '舞台畫布',
     audience: '觀眾席',
     loading3d: '正在載入 3D 預覽…',

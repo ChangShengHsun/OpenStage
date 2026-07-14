@@ -21,6 +21,7 @@ import { findCrossings } from '@openstage/path-planner';
 import { isCollabActive, setAwarenessCursor } from '../collab/collab';
 import { usePeers } from '../hooks/usePeers';
 import { isViewMode } from '../state/viewMode';
+import { useLayout } from '../state/layout';
 import { useStageBackground } from '../state/stageBackground';
 import { propOutline } from '../state/props';
 import { useT } from '../i18n';
@@ -73,6 +74,7 @@ export function StageCanvas(): ReactElement {
   const pathPerformerId = useEditor((s) => s.pathPerformerId);
   const peers = usePeers();
   const backgroundImage = useStageBackground((s) => s.image);
+  const snapToGrid = useLayout((s) => s.snapToGrid);
   const lastCursorSentRef = useRef(0);
 
   // Marquee (rubber-band) selection: press on empty floor, drag, release.
@@ -139,6 +141,19 @@ export function StageCanvas(): ReactElement {
   if (pxPerMeter <= 0 || !Number.isFinite(pxPerMeter)) {
     return <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />;
   }
+
+  // Clamp drags to the floor; with snap on, land on the 0.5m lattice
+  // (grid corners and cell centers). Symmetric, so it holds under flip too.
+  const dragBound = (pos: { x: number; y: number }): { x: number; y: number } => {
+    let x = Math.min(offsetX + floorW, Math.max(offsetX, pos.x));
+    let y = Math.min(offsetY + floorH, Math.max(offsetY, pos.y));
+    if (snapToGrid) {
+      const step = 0.5 * pxPerMeter;
+      x = offsetX + Math.round((x - offsetX) / step) * step;
+      y = offsetY + Math.round((y - offsetY) / step) * step;
+    }
+    return { x, y };
+  };
 
   // Stage-level pointer handlers, shared by mouse and touch (touch-action is
   // disabled on the container so one-finger drags stay on the canvas).
@@ -314,10 +329,7 @@ export function StageCanvas(): ReactElement {
                 x={px.x}
                 y={px.y}
                 draggable={!isPlaying && !isViewMode}
-                dragBoundFunc={(pos) => ({
-                  x: Math.min(offsetX + floorW, Math.max(offsetX, pos.x)),
-                  y: Math.min(offsetY + floorH, Math.max(offsetY, pos.y)),
-                })}
+                dragBoundFunc={dragBound}
                 onDragStart={() => {
                   pushHistory();
                   selectProp(prop.id);
@@ -526,10 +538,7 @@ export function StageCanvas(): ReactElement {
                 x={px.x}
                 y={px.y}
                 draggable={!isPlaying && !isViewMode}
-                dragBoundFunc={(pos) => ({
-                  x: Math.min(offsetX + floorW, Math.max(offsetX, pos.x)),
-                  y: Math.min(offsetY + floorH, Math.max(offsetY, pos.y)),
-                })}
+                dragBoundFunc={dragBound}
                 onDragStart={(e: Konva.KonvaEventObject<DragEvent>) => {
                   // One undo step per drag; frames below skip history.
                   pushHistory();

@@ -24,6 +24,8 @@ export function App(): ReactElement {
   const castWidth = useLayout((s) => s.castWidth);
   const propsWidth = useLayout((s) => s.propsWidth);
   const timelineHeight = useLayout((s) => s.timelineHeight);
+  const snapToGrid = useLayout((s) => s.snapToGrid);
+  const setSnapToGrid = useLayout((s) => s.setSnapToGrid);
   const { togglePlay } = usePlayback();
   useAppHotkeys(togglePlay);
 
@@ -77,6 +79,17 @@ export function App(): ReactElement {
         >
           {show3d ? '2D' : '3D'}
         </button>
+        {!show3d && (
+          <button
+            type="button"
+            className={`btn snap-toggle edit-only${snapToGrid ? ' btn-active' : ''}`}
+            aria-pressed={snapToGrid}
+            title={t.stage.snapTitle}
+            onClick={() => setSnapToGrid(!snapToGrid)}
+          >
+            {t.stage.snap}
+          </button>
+        )}
       </main>
       <PropertiesPanel />
       <Timeline

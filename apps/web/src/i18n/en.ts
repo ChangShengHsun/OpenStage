@@ -247,6 +247,8 @@ export const en = {
     tapHint: 'Keep tapping…',
     resetTap: 'Reset',
     applyBpm: (bpm: number): string => `Use ${bpm}`,
+    snap: 'Snap',
+    snapTitle: 'Snap to grid: drags land on grid corners or cell centers (0.5m steps)',
     canvasAria: 'Stage canvas',
     audience: 'AUDIENCE',
     loading3d: 'Loading 3D preview…',

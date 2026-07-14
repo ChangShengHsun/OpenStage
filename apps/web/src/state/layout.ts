@@ -24,9 +24,12 @@ interface LayoutState {
   castWidth: number;
   propsWidth: number;
   timelineHeight: number;
+  /** Drags land on the 0.5m lattice (grid corners and cell centers). */
+  snapToGrid: boolean;
   setCastWidth: (px: number) => void;
   setPropsWidth: (px: number) => void;
   setTimelineHeight: (px: number) => void;
+  setSnapToGrid: (on: boolean) => void;
 }
 
 export const useLayout = create<LayoutState>()(
@@ -35,9 +38,11 @@ export const useLayout = create<LayoutState>()(
       castWidth: DEFAULT_CAST_W,
       propsWidth: DEFAULT_PROPS_W,
       timelineHeight: DEFAULT_TIMELINE_H,
+      snapToGrid: false,
       setCastWidth: (px) => set({ castWidth: clampWidth(px) }),
       setPropsWidth: (px) => set({ propsWidth: clampWidth(px) }),
       setTimelineHeight: (px) => set({ timelineHeight: clampTimelineH(px) }),
+      setSnapToGrid: (on) => set({ snapToGrid: on }),
     }),
     { name: 'openstage-layout' },
   ),

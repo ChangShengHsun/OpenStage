@@ -841,6 +841,30 @@ test('crews: save the cast, load it into a fresh choreography with groups', asyn
   await expect(page.getByText('Team 2026 · 2')).toBeHidden();
 });
 
+test('grid snap: dragged performer lands on the 0.5m lattice', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByRole('button', { name: 'Snap', exact: true }).click();
+
+  // drag Dancer 1 from its default spot (1.5, 6.5) to roughly (5.7, 3.2)
+  const from = meterToPx(1.5, 6.5);
+  const to = meterToPx(5.7, 3.2);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 8 });
+  await page.mouse.up();
+
+  const state = await readDoc(page);
+  const fid = state.formations[0]?.id ?? '';
+  const pid = state.performers[0]?.id ?? '';
+  const pos = state.positions[fid]?.[pid];
+  expect(pos).toBeDefined();
+  // snapped: both coordinates are exact multiples of 0.5m
+  expect(((pos?.x ?? 0) * 2) % 1).toBeCloseTo(0, 5);
+  expect(((pos?.y ?? 0) * 2) % 1).toBeCloseTo(0, 5);
+  expect(Math.abs((pos?.x ?? 0) - 5.5)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs((pos?.y ?? 0) - 3)).toBeLessThanOrEqual(0.5);
+});
+
 test('metronome toggle needs a BPM and latches on', async ({ page }) => {
   const metro = page.getByRole('button', { name: 'Click', exact: true });
   await expect(metro).toBeDisabled();
