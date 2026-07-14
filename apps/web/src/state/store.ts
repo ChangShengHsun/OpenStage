@@ -48,6 +48,8 @@ interface EditorState extends DocState {
   setBpm: (bpm: number | null) => void;
   /** Which screen edge the audience is drawn on (2D plan and exports). */
   setAudienceAt: (at: 'top' | 'bottom') => void;
+  /** Opacity of the venue photo under the grid, 0–1. */
+  setStageBackgroundOpacity: (opacity: number) => void;
 
   addPerformer: () => void;
   importRoster: (rows: readonly RosterRow[]) => void;
@@ -318,6 +320,13 @@ export const useEditor = create<EditorState>()(
 
         setAudienceAt: (at) =>
           mutateDoc((s) => ({ performance: { ...s.performance, audienceAt: at } })),
+
+        // Not undoable: a slider drag fires per tick and would flood the
+        // undo stack with one step per pixel.
+        setStageBackgroundOpacity: (opacity) =>
+          set((s) => ({
+            performance: { ...s.performance, stageBackgroundOpacity: clamp(opacity, 0, 1) },
+          })),
 
         addPerformer: () =>
           mutateDoc((s) => {
@@ -1017,6 +1026,13 @@ export const useEditor = create<EditorState>()(
     },
   ),
 );
+
+// Persist the fresh doc immediately: audio and background images are keyed by
+// performance.id, so a reload BEFORE the first edit must not regenerate the id
+// (zustand-persist only writes on the first set() otherwise).
+if (typeof localStorage !== 'undefined' && localStorage.getItem('openstage-doc') === null) {
+  useEditor.setState({});
+}
 
 /** Ensure a valid formation is always selected (after load or deletion). */
 useEditor.subscribe((s) => {

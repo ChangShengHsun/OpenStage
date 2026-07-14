@@ -1,6 +1,7 @@
 import { createInitialDoc, useEditor } from './store';
 import type { DocState } from './store';
 import { copyAudioBetweenDocs, deleteAudioForDoc } from '../audio/audioPlayer';
+import { copyBackgroundBetweenDocs, deleteBackgroundForDoc } from './stageBackground';
 
 /**
  * Choreography library — many documents in one browser.
@@ -120,6 +121,7 @@ export function duplicateDoc(id: string, newTitle: string): void {
     ...readIndex(),
   ]);
   void copyAudioBetweenDocs(id, copy.performance.id);
+  void copyBackgroundBetweenDocs(id, copy.performance.id);
 }
 
 /** Remove a CLOSED document; the UI never offers this for the open one. */
@@ -127,6 +129,7 @@ export function deleteDoc(id: string): void {
   localStorage.removeItem(docKey(id));
   writeIndex(readIndex().filter((e) => e.id !== id));
   void deleteAudioForDoc(id);
+  void deleteBackgroundForDoc(id);
 }
 
 export function setDocTags(id: string, tags: string[]): void {

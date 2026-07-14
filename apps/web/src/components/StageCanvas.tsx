@@ -1,6 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Stage, Layer, Rect, Line, Group, Wedge, Circle, Text, Shape } from 'react-konva';
+import {
+  Stage,
+  Layer,
+  Rect,
+  Line,
+  Group,
+  Wedge,
+  Circle,
+  Text,
+  Shape,
+  Image as KonvaImage,
+} from 'react-konva';
 import type Konva from 'konva';
 import { useEditor } from '../state/store';
 import { byOrder, posesAtTime } from '../state/interpolate';
@@ -9,6 +20,7 @@ import { findCrossings } from '@openstage/path-planner';
 import { isCollabActive, setAwarenessCursor } from '../collab/collab';
 import { usePeers } from '../hooks/usePeers';
 import { isViewMode } from '../state/viewMode';
+import { useStageBackground } from '../state/stageBackground';
 import { useT } from '../i18n';
 
 const CURSOR_BROADCAST_MS = 80;
@@ -55,6 +67,7 @@ export function StageCanvas(): ReactElement {
   const clearPerformerSelection = useEditor((s) => s.clearPerformerSelection);
   const pathPerformerId = useEditor((s) => s.pathPerformerId);
   const peers = usePeers();
+  const backgroundImage = useStageBackground((s) => s.image);
   const lastCursorSentRef = useRef(0);
 
   // Marquee (rubber-band) selection: press on empty floor, drag, release.
@@ -207,6 +220,21 @@ export function StageCanvas(): ReactElement {
             stroke="#4a4038"
             strokeWidth={1.5}
           />
+          {/* Venue photo stretched onto the floor, under the grid; rotates
+              with the plan when the audience is drawn at the top. */}
+          {backgroundImage !== null && (
+            <KonvaImage
+              image={backgroundImage}
+              x={offsetX + floorW / 2}
+              y={offsetY + floorH / 2}
+              offsetX={floorW / 2}
+              offsetY={floorH / 2}
+              width={floorW}
+              height={floorH}
+              rotation={flip ? 180 : 0}
+              opacity={performance.stageBackgroundOpacity ?? 0.5}
+            />
+          )}
           {/* 1-meter grid */}
           {Array.from({ length: Math.floor(stageWidth) + 1 }, (_, i) => (
             <Line

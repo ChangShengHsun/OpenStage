@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useEditor } from '../state/store';
 import type { TemplateKind } from '../state/templates';
@@ -12,6 +12,7 @@ import { appendTap, bpmFromTaps, MIN_TAPS_TO_APPLY } from '../audio/tapTempo';
 import { byOrder, showEndMs } from '../state/interpolate';
 import { audioDurationMs } from '../audio/audioPlayer';
 import { normalizeBadge } from '../state/badge';
+import { useStageBackground } from '../state/stageBackground';
 
 /** Parse a number input, returning null for empty/invalid text. */
 function num(value: string): number | null {
@@ -505,6 +506,11 @@ function StageSection(): ReactElement {
   const performance = useEditor((s) => s.performance);
   const setStageSize = useEditor((s) => s.setStageSize);
   const setAudienceAt = useEditor((s) => s.setAudienceAt);
+  const setStageBackgroundOpacity = useEditor((s) => s.setStageBackgroundOpacity);
+  const backgroundImage = useStageBackground((s) => s.image);
+  const setBackground = useStageBackground((s) => s.set);
+  const clearBackground = useStageBackground((s) => s.clear);
+  const backgroundFileRef = useRef<HTMLInputElement>(null);
   const setBpm = useEditor((s) => s.setBpm);
   const addCountSegment = useEditor((s) => s.addCountSegment);
   const updateCountSegment = useEditor((s) => s.updateCountSegment);
@@ -568,6 +574,51 @@ function StageSection(): ReactElement {
             <option value="bottom">{t.stage.audienceBottom}</option>
             <option value="top">{t.stage.audienceTop}</option>
           </select>
+        </div>
+        <div className="field">
+          <label>{t.stage.backgroundLabel}</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn edit-only"
+              title={t.stage.backgroundTitle}
+              onClick={() => backgroundFileRef.current?.click()}
+            >
+              {backgroundImage === null ? t.stage.backgroundUpload : t.stage.backgroundReplace}
+            </button>
+            {backgroundImage !== null && (
+              <button
+                type="button"
+                className="btn edit-only"
+                onClick={() => void clearBackground(performance.id)}
+              >
+                {t.stage.backgroundRemove}
+              </button>
+            )}
+          </div>
+          <input
+            ref={backgroundFileRef}
+            type="file"
+            accept="image/*"
+            aria-label={t.stage.backgroundFileAria}
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file !== undefined) void setBackground(performance.id, file);
+              e.target.value = '';
+            }}
+          />
+          {backgroundImage !== null && (
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              aria-label={t.stage.backgroundOpacityAria}
+              value={performance.stageBackgroundOpacity ?? 0.5}
+              onChange={(e) => setStageBackgroundOpacity(Number(e.target.value))}
+            />
+          )}
         </div>
         <div className="field">
           <label htmlFor="stage-bpm">{t.stage.bpm}</label>

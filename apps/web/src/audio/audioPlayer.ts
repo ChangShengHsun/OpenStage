@@ -6,8 +6,8 @@
  * peaks are decoded lazily via the Web Audio API and cached.
  */
 
-const DB_NAME = 'openstage-media';
-const STORE = 'blobs';
+import { idbGet, idbPut } from '../media/blobStore';
+
 /** Docs saved before the library feature shared this single key. */
 const LEGACY_AUDIO_KEY = 'audio';
 
@@ -21,40 +21,6 @@ let audioBlob: Blob | null = null;
 let objectUrl: string | null = null;
 let peaksCache: readonly number[] | null = null;
 let peaksCacheBins = 0;
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
-  });
-}
-
-async function idbPut(key: string, value: Blob | null): Promise<void> {
-  const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    if (value === null) tx.objectStore(STORE).delete(key);
-    else tx.objectStore(STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB write failed'));
-  });
-  db.close();
-}
-
-async function idbGet(key: string): Promise<Blob | null> {
-  const db = await openDb();
-  const result = await new Promise<Blob | null>((resolve, reject) => {
-    const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
-    req.onsuccess = () => resolve(req.result instanceof Blob ? req.result : null);
-    req.onerror = () => reject(req.error ?? new Error('IndexedDB read failed'));
-  });
-  db.close();
-  return result;
-}
 
 function attach(blob: Blob): void {
   if (objectUrl !== null) URL.revokeObjectURL(objectUrl);

@@ -752,6 +752,28 @@ test('performer groups: tag two dancers, one click selects the group', async ({ 
   await expect(rows.nth(2)).toHaveAttribute('aria-selected', 'false');
 });
 
+test('stage background image uploads, persists and can be removed', async ({ page }) => {
+  // 1x1 PNG — enough to exercise decode, IndexedDB persistence and reload.
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  await page.setInputFiles('input[aria-label="Background image file"]', {
+    name: 'venue.png',
+    mimeType: 'image/png',
+    buffer: png,
+  });
+  await expect(page.getByRole('button', { name: 'Replace image' })).toBeVisible();
+  await expect(page.getByLabel('Background image opacity')).toBeVisible();
+
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  await expect(page.getByRole('button', { name: 'Replace image' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Upload image' })).toBeVisible();
+});
+
 test('library: create, switch, duplicate and delete choreographies', async ({ page }) => {
   await page.getByLabel('Performance title').fill('Show A');
   await page.getByText('Add performer').click();
@@ -786,9 +808,9 @@ test('library: create, switch, duplicate and delete choreographies', async ({ pa
   // switch back to Show A — its performer and its audio are still there
   await page.getByRole('button', { name: 'Open Show A', exact: true }).click();
   await expect(page.getByLabel('Performance title')).toHaveValue('Show A');
-  await expect(
-    page.getByRole('listbox', { name: 'Performers' }).getByRole('option'),
-  ).toHaveCount(1);
+  await expect(page.getByRole('listbox', { name: 'Performers' }).getByRole('option')).toHaveCount(
+    1,
+  );
   await expect(page.getByText('Replace audio')).toBeVisible();
 });
 

@@ -57,6 +57,12 @@ export interface Performance {
    * stored coordinates are unaffected. Absent = 'bottom' (director view).
    */
   audienceAt?: 'top' | 'bottom';
+  /**
+   * Opacity of the venue photo drawn under the grid, 0–1. The image itself
+   * is a local blob (IndexedDB, keyed per document) — it does not travel
+   * with the doc. Absent = 0.5.
+   */
+  stageBackgroundOpacity?: number;
 }
 
 /** One counted passage: count 1 lands on startMs, counting stops at endMs. */
