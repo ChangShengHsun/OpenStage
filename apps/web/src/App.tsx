@@ -27,6 +27,8 @@ export function App(): ReactElement {
   const snapToGrid = useLayout((s) => s.snapToGrid);
   const setSnapToGrid = useLayout((s) => s.setSnapToGrid);
   const uiMode = useLayout((s) => s.uiMode);
+  const annotateMode = useEditor((s) => s.annotateMode);
+  const setAnnotateMode = useEditor((s) => s.setAnnotateMode);
   const { togglePlay } = usePlayback();
   useAppHotkeys(togglePlay);
 
@@ -72,25 +74,47 @@ export function App(): ReactElement {
         ) : (
           <StageCanvas />
         )}
-        <button
-          type="button"
-          className="btn view-toggle"
-          onClick={() => setShow3d((v) => !v)}
-          title={show3d ? t.stage.to2dTitle : t.stage.to3dTitle}
-        >
-          {show3d ? '2D' : '3D'}
-        </button>
-        {!show3d && (
+        <div className="canvas-tools">
+          {!show3d && (
+            <>
+              <button
+                type="button"
+                className={`btn edit-only${snapToGrid ? ' btn-active' : ''}`}
+                aria-pressed={snapToGrid}
+                title={t.stage.snapTitle}
+                onClick={() => setSnapToGrid(!snapToGrid)}
+              >
+                {t.stage.snap}
+              </button>
+              <button
+                type="button"
+                className={`btn edit-only expert-only-ui${annotateMode === 'pen' ? ' btn-active' : ''}`}
+                aria-pressed={annotateMode === 'pen'}
+                title={t.stage.penTitle}
+                onClick={() => setAnnotateMode(annotateMode === 'pen' ? 'off' : 'pen')}
+              >
+                {t.stage.pen}
+              </button>
+              <button
+                type="button"
+                className={`btn edit-only expert-only-ui${annotateMode === 'pin' ? ' btn-active' : ''}`}
+                aria-pressed={annotateMode === 'pin'}
+                title={t.stage.pinTitle}
+                onClick={() => setAnnotateMode(annotateMode === 'pin' ? 'off' : 'pin')}
+              >
+                {t.stage.pin}
+              </button>
+            </>
+          )}
           <button
             type="button"
-            className={`btn snap-toggle edit-only${snapToGrid ? ' btn-active' : ''}`}
-            aria-pressed={snapToGrid}
-            title={t.stage.snapTitle}
-            onClick={() => setSnapToGrid(!snapToGrid)}
+            className="btn view-toggle"
+            onClick={() => setShow3d((v) => !v)}
+            title={show3d ? t.stage.to2dTitle : t.stage.to3dTitle}
           >
-            {t.stage.snap}
+            {show3d ? '2D' : '3D'}
           </button>
-        )}
+        </div>
       </main>
       <PropertiesPanel />
       <Timeline

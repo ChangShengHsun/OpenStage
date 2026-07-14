@@ -1007,6 +1007,41 @@ test('library: create, switch, duplicate and delete choreographies', async ({ pa
   await expect(page.getByText('Replace audio')).toBeVisible();
 });
 
+test('annotations: pen stroke and text pin, stored per formation', async ({ page }) => {
+  // draw a stroke
+  await page.getByRole('button', { name: 'Pen', exact: true }).click();
+  const from = meterToPx(3, 3);
+  const to = meterToPx(7, 5);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 6 });
+  await page.mouse.up();
+
+  // drop a text pin
+  await page.getByRole('button', { name: 'Note', exact: true }).click();
+  page.once('dialog', (dialog) => void dialog.accept('watch spacing'));
+  const pinAt = meterToPx(9, 2);
+  await page.mouse.click(pinAt.x, pinAt.y);
+
+  type DocAnnotations = { annotations: { kind: string; text?: string; points?: number[] }[] };
+  let state = (await readDoc(page)) as unknown as DocAnnotations;
+  expect(state.annotations).toHaveLength(2);
+  expect(state.annotations[0]?.kind).toBe('stroke');
+  expect((state.annotations[0]?.points ?? []).length).toBeGreaterThanOrEqual(4);
+  expect(state.annotations[1]?.text).toBe('watch spacing');
+
+  // still in Note mode: clicking the pin erases it
+  await page.mouse.click(pinAt.x, pinAt.y);
+  state = (await readDoc(page)) as unknown as DocAnnotations;
+  expect(state.annotations).toHaveLength(1);
+
+  // a new formation shows no notes from the first one (undo-able data)
+  await page.getByRole('button', { name: 'Note', exact: true }).click(); // off
+  await page.getByText('Add formation').click();
+  state = (await readDoc(page)) as unknown as DocAnnotations;
+  expect(state.annotations).toHaveLength(1); // still stored, on formation 1 only
+});
+
 test('wings: dancers can be placed offstage once wings exist', async ({ page }) => {
   await page.getByText('Add performer').click();
   // no wings yet: offstage x clamps back to 0

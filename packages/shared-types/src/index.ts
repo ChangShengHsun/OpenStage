@@ -105,6 +105,27 @@ export interface StageProp {
   height: number;
 }
 
+/**
+ * A rehearsal note drawn on one formation's stage plan: a freehand pen
+ * stroke or a text pin. Coordinates are stage meters, so notes stay glued
+ * to the spot they mark on any screen size.
+ */
+export interface Annotation {
+  id: string;
+  performanceId: string;
+  formationId: string;
+  kind: 'stroke' | 'pin';
+  /** Display color, hex. */
+  color: string;
+  /** stroke: flattened [x0, y0, x1, y1, …]. */
+  points?: number[];
+  /** pin anchor. */
+  x?: number;
+  y?: number;
+  /** pin label. */
+  text?: string;
+}
+
 export interface Formation {
   id: string;
   performanceId: string;

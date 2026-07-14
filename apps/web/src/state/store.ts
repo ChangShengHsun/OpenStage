@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
+  Annotation,
   CountSegment,
   DocComment,
   Formation,
@@ -38,6 +39,8 @@ export interface DocState {
   formations: Formation[];
   positions: PositionMap;
   comments: DocComment[];
+  /** Rehearsal notes (pen strokes, text pins) drawn per formation. */
+  annotations: Annotation[];
 }
 
 interface EditorState extends DocState {
@@ -51,6 +54,8 @@ interface EditorState extends DocState {
   playbackRate: number;
   /** Session-only: click on every beat while playing (needs a BPM). */
   metronomeOn: boolean;
+  /** Session-only canvas tool: draw strokes / drop pins / off. */
+  annotateMode: 'off' | 'pen' | 'pin';
 
   setTitle: (title: string) => void;
   setStageSize: (width: number, height: number) => void;
@@ -159,6 +164,9 @@ interface EditorState extends DocState {
   setIsPlaying: (playing: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setMetronomeOn: (on: boolean) => void;
+  setAnnotateMode: (mode: 'off' | 'pen' | 'pin') => void;
+  addAnnotation: (a: Omit<Annotation, 'id' | 'performanceId'>) => void;
+  removeAnnotation: (id: string) => void;
 
   /** Replace the whole document (version-history restore); undoable. */
   restoreDoc: (doc: DocState) => void;
@@ -231,6 +239,7 @@ export function createInitialDoc(): DocState {
     ],
     positions: { [formationId]: {} },
     comments: [],
+    annotations: [],
   };
 }
 
@@ -283,6 +292,8 @@ function snapshotDoc(s: DocState): DocState {
       ]),
     ),
     comments: s.comments.map((c) => ({ ...c })),
+    // ?? []: snapshots saved before annotations existed lack the field.
+    annotations: (s.annotations ?? []).map((a) => ({ ...a })),
   };
 }
 
@@ -330,6 +341,7 @@ export const useEditor = create<EditorState>()(
         isPlaying: false,
         playbackRate: 1,
         metronomeOn: false,
+        annotateMode: 'off',
 
         setTitle: (title) => mutateDoc((s) => ({ performance: { ...s.performance, title } })),
 
@@ -632,6 +644,7 @@ export const useEditor = create<EditorState>()(
             return {
               formations: remaining,
               positions,
+              annotations: s.annotations.filter((a) => a.formationId !== id),
               selectedFormationId:
                 s.selectedFormationId === id && fallback !== undefined
                   ? fallback.id
@@ -1077,6 +1090,15 @@ export const useEditor = create<EditorState>()(
         setIsPlaying: (playing) => set({ isPlaying: playing }),
         setPlaybackRate: (rate) => set({ playbackRate: Math.min(2, Math.max(0.5, rate)) }),
         setMetronomeOn: (on) => set({ metronomeOn: on }),
+        setAnnotateMode: (mode) => set({ annotateMode: mode }),
+
+        addAnnotation: (a) =>
+          mutateDoc((s) => ({
+            annotations: [...s.annotations, { ...a, id: newId(), performanceId: s.performance.id }],
+          })),
+
+        removeAnnotation: (id) =>
+          mutateDoc((s) => ({ annotations: s.annotations.filter((a) => a.id !== id) })),
 
         restoreDoc: (doc) =>
           mutateDoc(() => ({
@@ -1130,6 +1152,7 @@ export const useEditor = create<EditorState>()(
         formations: s.formations,
         positions: s.positions,
         comments: s.comments,
+        annotations: s.annotations,
       }),
       // Docs saved before the comments feature have no `comments` key —
       // default it so actions never see undefined.
@@ -1145,7 +1168,14 @@ export const useEditor = create<EditorState>()(
                 countSegments: p.performance.countSegments ?? [],
               }
             : current.performance;
-        return { ...current, ...p, performance, comments: p.comments ?? [], props: p.props ?? [] };
+        return {
+          ...current,
+          ...p,
+          performance,
+          comments: p.comments ?? [],
+          props: p.props ?? [],
+          annotations: p.annotations ?? [],
+        };
       },
     },
   ),

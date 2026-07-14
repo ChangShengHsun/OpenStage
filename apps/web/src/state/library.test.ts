@@ -42,6 +42,16 @@ const doc: DocState = {
   ],
   positions: { f1: { p1: { formationId: 'f1', performerId: 'p1', x: 1, y: 2, rotation: 0 } } },
   comments: [],
+  annotations: [
+    {
+      id: 'n1',
+      performanceId: 'perf-1',
+      formationId: 'f1',
+      kind: 'pin',
+      color: '#fff',
+      text: 'hi',
+    },
+  ],
 };
 
 describe('cloneDocAs', () => {
@@ -57,6 +67,7 @@ describe('cloneDocAs', () => {
     expect(copy.formations[0]?.id).toBe('f1');
     expect(copy.props[0]?.performanceId).toBe('perf-2');
     expect(copy.props[0]?.id).toBe('prop1');
+    expect(copy.annotations[0]?.performanceId).toBe('perf-2');
     // positions stay keyed by the unchanged formation/performer ids
     expect(copy.positions['f1']?.['p1']?.x).toBe(1);
   });

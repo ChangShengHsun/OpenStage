@@ -33,6 +33,8 @@ const CROSS_ARM_M = 0.26;
 const WEDGE_RADIUS_M = 0.85;
 const WEDGE_ANGLE_DEG = 56;
 const HIT_RADIUS_M = 0.45;
+/** Rehearsal notes draw in spike-tape amber. */
+const ANNOTATION_COLOR = '#e8d44c';
 
 /**
  * rotation 0 = facing the audience (downstage = screen bottom), degrees
@@ -72,6 +74,10 @@ export function StageCanvas(): ReactElement {
   const setPerformerSelection = useEditor((s) => s.setPerformerSelection);
   const clearPerformerSelection = useEditor((s) => s.clearPerformerSelection);
   const pathPerformerId = useEditor((s) => s.pathPerformerId);
+  const annotations = useEditor((s) => s.annotations);
+  const annotateMode = useEditor((s) => s.annotateMode);
+  const addAnnotation = useEditor((s) => s.addAnnotation);
+  const removeAnnotation = useEditor((s) => s.removeAnnotation);
   const peers = usePeers();
   const backgroundImage = useStageBackground((s) => s.image);
   const snapToGrid = useLayout((s) => s.snapToGrid);
@@ -88,6 +94,9 @@ export function StageCanvas(): ReactElement {
     startM: { x: number; y: number };
     origins: Map<string, { x: number; y: number }>;
   } | null>(null);
+  // Pen stroke in progress (meters, flattened) — committed on pointer up.
+  const penRef = useRef<number[] | null>(null);
+  const [penPreview, setPenPreview] = useState<number[] | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -162,6 +171,30 @@ export function StageCanvas(): ReactElement {
   // Stage-level pointer handlers, shared by mouse and touch (touch-action is
   // disabled on the container so one-finger drags stay on the canvas).
   const onStagePointerDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>): void => {
+    if (annotateMode !== 'off' && !isPlaying && !isViewMode) {
+      const pointer = e.target.getStage()?.getPointerPosition();
+      if (pointer == null) return;
+      // Deleting an existing note is handled by the note's own handler.
+      if (e.target.name() === 'annotation') return;
+      const m = toMeters(pointer.x, pointer.y);
+      if (annotateMode === 'pen') {
+        penRef.current = [m.x, m.y];
+        setPenPreview([m.x, m.y]);
+      } else {
+        const text = window.prompt(t.stage.pinPrompt, '');
+        if (text !== null && text.trim() !== '') {
+          addAnnotation({
+            formationId: selectedFormationId,
+            kind: 'pin',
+            color: ANNOTATION_COLOR,
+            x: m.x,
+            y: m.y,
+            text: text.trim(),
+          });
+        }
+      }
+      return;
+    }
     if (e.target === e.target.getStage() || e.target.name() === 'floor') {
       const pointer = e.target.getStage()?.getPointerPosition();
       if (pointer != null && !isPlaying) {
@@ -174,6 +207,12 @@ export function StageCanvas(): ReactElement {
 
   const onStagePointerMove = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>): void => {
     const pointer = e.target.getStage()?.getPointerPosition();
+    if (penRef.current !== null && pointer != null) {
+      const m = toMeters(pointer.x, pointer.y);
+      penRef.current.push(m.x, m.y);
+      setPenPreview([...penRef.current]);
+      return;
+    }
     const drag = marqueeRef.current;
     if (drag !== null && pointer != null) {
       if (drag.moved || Math.abs(pointer.x - drag.x0) > 4 || Math.abs(pointer.y - drag.y0) > 4) {
@@ -191,6 +230,20 @@ export function StageCanvas(): ReactElement {
   };
 
   const onStagePointerUp = (): void => {
+    if (penRef.current !== null) {
+      const points = penRef.current;
+      penRef.current = null;
+      setPenPreview(null);
+      if (points.length >= 4) {
+        addAnnotation({
+          formationId: selectedFormationId,
+          kind: 'stroke',
+          color: ANNOTATION_COLOR,
+          points,
+        });
+      }
+      return;
+    }
     const drag = marqueeRef.current;
     marqueeRef.current = null;
     setMarquee(null);
@@ -345,7 +398,7 @@ export function StageCanvas(): ReactElement {
         {/* Props: scenery footprints under the dancers. The outer group
             carries position + drag; only the inner group rotates, so the
             name label stays readable. */}
-        <Layer>
+        <Layer listening={annotateMode === 'off'}>
           {props.map((prop) => {
             const pose: StagePose = livePoses?.get(prop.id) ?? {
               x: editPositions[prop.id]?.x ?? NaN,
@@ -555,7 +608,7 @@ export function StageCanvas(): ReactElement {
             );
           })()}
 
-        <Layer>
+        <Layer listening={annotateMode === 'off'}>
           {performers.map((p) => {
             const pose: StagePose | undefined = livePoses?.get(p.id) ?? {
               x: editPositions[p.id]?.x ?? NaN,
@@ -728,6 +781,85 @@ export function StageCanvas(): ReactElement {
             );
           })}
         </Layer>
+
+        {/* Rehearsal notes on the selected formation: pen strokes and text
+            pins, stored in stage meters. In pen/pin mode a note is a click
+            target for deletion. */}
+        {!isPlaying && (
+          <Layer listening={annotateMode !== 'off'}>
+            {annotations
+              .filter((a) => a.formationId === selectedFormationId)
+              .map((a) => {
+                const remove = (): void => {
+                  if (annotateMode !== 'off') removeAnnotation(a.id);
+                };
+                if (a.kind === 'stroke') {
+                  const flat: number[] = [];
+                  const pts = a.points ?? [];
+                  for (let i = 0; i + 1 < pts.length; i += 2) {
+                    const px = toPx(pts[i] ?? 0, pts[i + 1] ?? 0);
+                    flat.push(px.x, px.y);
+                  }
+                  return (
+                    <Line
+                      key={a.id}
+                      name="annotation"
+                      points={flat}
+                      stroke={a.color}
+                      strokeWidth={2.5}
+                      lineCap="round"
+                      lineJoin="round"
+                      tension={0.3}
+                      opacity={0.9}
+                      hitStrokeWidth={14}
+                      onClick={remove}
+                      onTap={remove}
+                    />
+                  );
+                }
+                const at = toPx(a.x ?? 0, a.y ?? 0);
+                return (
+                  <Group
+                    key={a.id}
+                    name="annotation"
+                    x={at.x}
+                    y={at.y}
+                    onClick={remove}
+                    onTap={remove}
+                  >
+                    <Circle name="annotation" radius={4} fill={a.color} />
+                    <Text
+                      name="annotation"
+                      x={8}
+                      y={-7}
+                      text={a.text ?? ''}
+                      fontFamily="'IBM Plex Mono', monospace"
+                      fontSize={12}
+                      fill={a.color}
+                    />
+                  </Group>
+                );
+              })}
+            {penPreview !== null &&
+              (() => {
+                const flat: number[] = [];
+                for (let i = 0; i + 1 < penPreview.length; i += 2) {
+                  const px = toPx(penPreview[i] ?? 0, penPreview[i + 1] ?? 0);
+                  flat.push(px.x, px.y);
+                }
+                return (
+                  <Line
+                    points={flat}
+                    stroke={ANNOTATION_COLOR}
+                    strokeWidth={2.5}
+                    lineCap="round"
+                    dash={[6, 4]}
+                    listening={false}
+                  />
+                );
+              })()}
+          </Layer>
+        )}
 
         {/* Whole-show walk path for one performer: numbered stops, dashed legs. */}
         {!isPlaying &&

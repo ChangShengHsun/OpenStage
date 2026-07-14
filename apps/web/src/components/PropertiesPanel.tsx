@@ -674,6 +674,7 @@ function HistorySection(): ReactElement {
               formations: s.formations,
               positions: s.positions,
               comments: s.comments,
+              annotations: s.annotations,
             }).then(refresh);
           }}
         >

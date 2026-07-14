@@ -397,19 +397,18 @@ input[type='color'] {
 
 /* ---- 2D/3D toggle ------------------------------------------------------ */
 
-.view-toggle {
+/* Canvas corner tools: snap, pen, note pin, 3D. */
+.canvas-tools {
   position: absolute;
   top: 10px;
   right: 10px;
   z-index: 2;
-  min-width: 40px;
+  display: flex;
+  gap: 6px;
 }
 
-.snap-toggle {
-  position: absolute;
-  top: 10px;
-  right: 58px;
-  z-index: 2;
+.view-toggle {
+  min-width: 40px;
 }
 
 /* ---- View-only mode --------------------------------------------------- */

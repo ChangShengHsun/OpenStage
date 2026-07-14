@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import type {
+  Annotation,
   DocComment,
   Formation,
   FormationPosition,
@@ -91,6 +92,7 @@ function docToRecords(s: DocState): {
   formations: Record<string, unknown>;
   positions: Record<string, unknown>;
   comments: Record<string, unknown>;
+  annotations: Record<string, unknown>;
 } {
   const positions: Record<string, unknown> = {};
   for (const [fid, byPerformer] of Object.entries(s.positions)) {
@@ -105,6 +107,7 @@ function docToRecords(s: DocState): {
     formations: Object.fromEntries(s.formations.map((f) => [f.id, f])),
     positions,
     comments: Object.fromEntries(s.comments.map((c) => [c.id, c])),
+    annotations: Object.fromEntries(s.annotations.map((a) => [a.id, a])),
   };
 }
 
@@ -117,6 +120,7 @@ function writeDocToY(ydoc: Y.Doc, s: DocState): void {
     syncMapFromRecord(ydoc.getMap('formations'), records.formations);
     syncMapFromRecord(ydoc.getMap('positions'), records.positions);
     syncMapFromRecord(ydoc.getMap('comments'), records.comments);
+    syncMapFromRecord(ydoc.getMap('annotations'), records.annotations);
   }, LOCAL_ORIGIN);
 }
 
@@ -144,6 +148,7 @@ function readDocFromY(ydoc: Y.Doc): DocState | null {
     formations: [...formations].sort((a, b) => a.orderIndex - b.orderIndex),
     positions,
     comments,
+    annotations: [...ydoc.getMap('annotations').values()] as Annotation[],
   };
 }
 
@@ -270,6 +275,7 @@ export function startCollab(room: string): void {
     ydoc.getMap('formations'),
     ydoc.getMap('positions'),
     ydoc.getMap('comments'),
+    ydoc.getMap('annotations'),
   ];
   const undoManager = new Y.UndoManager(shared, {
     trackedOrigins: new Set([LOCAL_ORIGIN]),
