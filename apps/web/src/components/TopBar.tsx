@@ -10,6 +10,7 @@ import { useT } from '../i18n';
 import { ExportDialog } from './ExportDialog';
 import { LibraryDialog } from './LibraryDialog';
 import { PrefsDialog } from './PrefsDialog';
+import { GuideDialog } from './GuideDialog';
 
 export function TopBar(): ReactElement {
   const t = useT();
@@ -115,6 +116,7 @@ export function TopBar(): ReactElement {
         {formatTimecode(playheadMs)}
         {eightCount !== null ? `  ${eightCount}` : ''}
       </span>
+      <GuideDialog />
       <ExportDialog />
       <PrefsDialog />
     </header>

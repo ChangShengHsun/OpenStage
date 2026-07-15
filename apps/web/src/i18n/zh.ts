@@ -105,6 +105,13 @@ export const zh: Messages = {
     uiModeNote: '簡易模式會隱藏進階工具（班底、道具、徽章、解交叉、隊形庫、打拍校正…）',
   },
 
+  guide: {
+    open: '教學',
+    openAria: '開啟使用教學',
+    title: 'GridStage 使用教學',
+    close: '關閉',
+  },
+
   export: {
     open: '匯出…',
     title: '匯出',

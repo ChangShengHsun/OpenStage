@@ -104,6 +104,13 @@ export const en = {
     uiModeNote: 'Easy hides power tools (crews, props, badges, untangle, presets, tap tempo…)',
   },
 
+  guide: {
+    open: 'Guide',
+    openAria: 'Open the guide',
+    title: 'Guide',
+    close: 'Close',
+  },
+
   export: {
     open: 'Export…',
     title: 'Export',
