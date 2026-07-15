@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import { useT } from '../i18n';
 import { GUIDE } from './guideContent';
@@ -12,6 +12,9 @@ import { GUIDE } from './guideContent';
 export function GuideDialog(): ReactElement {
   const t = useT();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  // Only mount the content while open: a closed <dialog>'s text still matches
+  // page-wide text queries (and could overlap), so keep it out of the DOM.
+  const [open, setOpen] = useState(false);
 
   return (
     <>
@@ -20,11 +23,21 @@ export function GuideDialog(): ReactElement {
         className="btn"
         aria-label={t.guide.openAria}
         title={t.guide.openAria}
-        onClick={() => dialogRef.current?.showModal()}
+        onClick={() => {
+          setOpen(true);
+          dialogRef.current?.showModal();
+        }}
       >
         {t.guide.open}
       </button>
-      <dialog ref={dialogRef} className="guide-dialog" aria-label={t.guide.title}>
+      <dialog
+        ref={dialogRef}
+        className="guide-dialog"
+        aria-label={t.guide.title}
+        onClose={() => setOpen(false)}
+      >
+        {open && (
+          <>
         <div className="export-dialog-head">
           <span className="panel-title" style={{ margin: 0 }}>
             {t.guide.title}
@@ -64,6 +77,8 @@ export function GuideDialog(): ReactElement {
             </details>
           ))}
         </div>
+          </>
+        )}
       </dialog>
     </>
   );

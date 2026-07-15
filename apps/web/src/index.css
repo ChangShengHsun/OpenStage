@@ -530,6 +530,10 @@ input[type='color'] {
   background: var(--panel);
   color: var(--ink);
   overflow: hidden;
+}
+/* Only when open: a closed <dialog> must stay display:none (else its content
+   leaks into the page and into tests). */
+.guide-dialog[open] {
   display: flex;
   flex-direction: column;
 }
