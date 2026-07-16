@@ -8,6 +8,7 @@ import type {
   FormationPosition,
   Performance,
   Performer,
+  PositionMarker,
   PropKind,
   StageProp,
 } from '@gridstage/shared-types';
@@ -128,6 +129,8 @@ interface EditorState extends DocState {
   /** Same, but WITHOUT recording history — for continuous drag frames. */
   setPositionLive: (formationId: string, performerId: string, x: number, y: number) => void;
   setRotation: (formationId: string, performerId: string, rotation: number) => void;
+  /** Set or clear (null) this performer's state marker in one formation. */
+  setMarker: (formationId: string, performerId: string, marker: PositionMarker | null) => void;
   /** Set the Bézier control point for this performer's transition OUT. */
   setCurveControl: (formationId: string, performerId: string, x: number, y: number) => void;
   nudgeSelected: (dx: number, dy: number) => void;
@@ -945,6 +948,21 @@ export const useEditor = create<EditorState>()(
                   ...s.positions[formationId],
                   [performerId]: { ...existing, rotation: normalized },
                 },
+              },
+            };
+          }),
+
+        setMarker: (formationId, performerId, marker) =>
+          mutateDoc((s) => {
+            const existing = s.positions[formationId]?.[performerId];
+            if (existing === undefined) return {};
+            const updated = { ...existing };
+            if (marker === null) delete updated.marker;
+            else updated.marker = marker;
+            return {
+              positions: {
+                ...s.positions,
+                [formationId]: { ...s.positions[formationId], [performerId]: updated },
               },
             };
           }),

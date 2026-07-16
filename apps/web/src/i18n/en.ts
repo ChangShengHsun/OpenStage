@@ -178,6 +178,13 @@ export const en = {
     spreadTitle: 'Widen the spacing of the selected group (shape kept)',
     tighten: 'Tighten',
     tightenTitle: 'Close up the spacing of the selected group (shape kept)',
+    markerLabel: 'State mark',
+    markerTitle:
+      'A shape drawn around this dancer in THIS formation only — mark kneeling, jumping, holding a prop… your team picks the meaning',
+    markerNone: 'None',
+    markerSquare: '□ Square',
+    markerTriangle: '△ Triangle',
+    markerDiamond: '◇ Diamond',
     name: 'Name',
     role: 'Role',
     rolePlaceholder: 'e.g. captain, flyer',

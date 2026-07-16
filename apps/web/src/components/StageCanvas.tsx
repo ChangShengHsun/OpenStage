@@ -11,6 +11,7 @@ import {
   Ellipse,
   Text,
   Shape,
+  RegularPolygon,
   Image as KonvaImage,
 } from 'react-konva';
 import type Konva from 'konva';
@@ -702,6 +703,38 @@ export function StageCanvas(): ReactElement {
                   fill={p.color}
                   opacity={0.22}
                 />
+                {/* State marker: a shape ring flagging kneel/jump/prop-style
+                    states in THIS formation. Hidden while playing (a state is
+                    per-formation; mid-transition it is ambiguous). */}
+                {!isPlaying && editPositions[p.id]?.marker === 'square' && (
+                  <Rect
+                    x={-0.42 * pxPerMeter}
+                    y={-0.42 * pxPerMeter}
+                    width={0.84 * pxPerMeter}
+                    height={0.84 * pxPerMeter}
+                    stroke={p.color}
+                    strokeWidth={2}
+                    listening={false}
+                  />
+                )}
+                {!isPlaying && editPositions[p.id]?.marker === 'triangle' && (
+                  <RegularPolygon
+                    sides={3}
+                    radius={0.52 * pxPerMeter}
+                    stroke={p.color}
+                    strokeWidth={2}
+                    listening={false}
+                  />
+                )}
+                {!isPlaying && editPositions[p.id]?.marker === 'diamond' && (
+                  <RegularPolygon
+                    sides={4}
+                    radius={0.55 * pxPerMeter}
+                    stroke={p.color}
+                    strokeWidth={2}
+                    listening={false}
+                  />
+                )}
                 {selected && (
                   <Circle
                     radius={HIT_RADIUS_M * pxPerMeter}

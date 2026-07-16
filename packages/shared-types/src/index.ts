@@ -174,7 +174,15 @@ export interface FormationPosition {
    * in stage meters. Absent or empty = straight line.
    */
   curveControlPoints?: readonly { x: number; y: number }[];
+  /**
+   * State marker drawn around the mark in THIS formation (kneel, jump,
+   * holding a prop… — the team assigns the meaning). Absent = plain mark.
+   */
+  marker?: PositionMarker;
 }
+
+/** Shape vocabulary for per-formation state markers. */
+export type PositionMarker = 'square' | 'triangle' | 'diamond';
 
 export interface Comment {
   id: string;

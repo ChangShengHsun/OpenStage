@@ -222,6 +222,39 @@ test('group rotate and spread transform the selection around its center', async 
   expect(Math.abs((state.positions[fid]?.[p2]?.y ?? 0) - (3 + 1.15))).toBeLessThan(0.05);
 });
 
+test('state marker is per-formation and survives reload', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add formation').click(); // formation 2, copies positions
+  const state0 = await readDoc(page);
+  const pid = state0.performers[0]?.id ?? '';
+  const [f1, f2] = [...state0.formations].sort((a, b) => a.orderIndex - b.orderIndex);
+
+  // Mark the dancer as (say) kneeling in formation 2 only.
+  await page.getByText('Dancer 1').first().click();
+  await page.locator('#pos-marker').selectOption('triangle');
+  let state = await readDoc(page);
+  type WithMarker = { marker?: string };
+  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe(
+    'triangle',
+  );
+  expect((state.positions[f1?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBeUndefined();
+
+  // Clearing removes the key; persists across reload.
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  state = await readDoc(page);
+  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe(
+    'triangle',
+  );
+  // Reload healed the selection back to formation 1 — reselect formation 2
+  // (its block's aria-label is "Formation <name>, starts at <t>s").
+  await page.getByRole('button', { name: /^Formation Formation 2,/ }).click();
+  await page.getByText('Dancer 1').first().click();
+  await page.locator('#pos-marker').selectOption('');
+  state = await readDoc(page);
+  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBeUndefined();
+});
+
 test('section markers: add, name, persist, remove', async ({ page }) => {
   await page.getByRole('button', { name: 'Add section' }).click();
   // The rename box is focused immediately; type a name and commit.

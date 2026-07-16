@@ -43,6 +43,7 @@ function PerformerSection(): ReactElement | null {
   const removePerformer = useEditor((s) => s.removePerformer);
   const setPosition = useEditor((s) => s.setPosition);
   const setRotation = useEditor((s) => s.setRotation);
+  const setMarker = useEditor((s) => s.setMarker);
   const pathPerformerId = useEditor((s) => s.pathPerformerId);
   const setPathPerformer = useEditor((s) => s.setPathPerformer);
 
@@ -174,6 +175,29 @@ function PerformerSection(): ReactElement | null {
                 value={pos.rotation}
                 onCommit={(v) => setRotation(selectedFormationId, performer.id, v)}
               />
+            </div>
+            <div className="field expert-only-ui">
+              <label htmlFor="pos-marker" title={t.performer.markerTitle}>
+                {t.performer.markerLabel}
+              </label>
+              <select
+                id="pos-marker"
+                title={t.performer.markerTitle}
+                value={pos.marker ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setMarker(
+                    selectedFormationId,
+                    performer.id,
+                    v === 'square' || v === 'triangle' || v === 'diamond' ? v : null,
+                  );
+                }}
+              >
+                <option value="">{t.performer.markerNone}</option>
+                <option value="square">{t.performer.markerSquare}</option>
+                <option value="triangle">{t.performer.markerTriangle}</option>
+                <option value="diamond">{t.performer.markerDiamond}</option>
+              </select>
             </div>
           </>
         )}
