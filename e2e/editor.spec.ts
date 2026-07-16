@@ -182,6 +182,46 @@ test('formation tools: mirror flips x, align row shares depth', async ({ page })
   ).toBeLessThan(0.05);
 });
 
+test('group rotate and spread transform the selection around its center', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  const state0 = await readDoc(page);
+  const fid = state0.formations[0]?.id ?? '';
+  const p1 = state0.performers[0]?.id ?? '';
+  const p2 = state0.performers[1]?.id ?? '';
+  // Put them on a known horizontal line: (4, 3) and (6, 3).
+  await page.getByText('Dancer 1').first().click();
+  await page.locator('#pos-x').fill('4');
+  await page.locator('#pos-y').fill('3');
+  await page.getByText('Dancer 2').first().click();
+  await page.locator('#pos-x').fill('6');
+  await page.locator('#pos-y').fill('3');
+
+  // Select both and rotate 90° clockwise: line pivots around (5, 3).
+  await page.getByText('Dancer 1').first().click();
+  await page
+    .getByText('Dancer 2')
+    .first()
+    .click({ modifiers: ['Shift'] });
+  for (let i = 0; i < 6; i++) {
+    await page.getByRole('button', { name: '⟳ Rotate 15°' }).click();
+  }
+  let state = await readDoc(page);
+  const a = state.positions[fid]?.[p1];
+  const b = state.positions[fid]?.[p2];
+  expect(Math.abs((a?.x ?? 0) - 5)).toBeLessThan(0.05);
+  expect(Math.abs((a?.y ?? 0) - 2)).toBeLessThan(0.05);
+  expect(Math.abs((b?.x ?? 0) - 5)).toBeLessThan(0.05);
+  expect(Math.abs((b?.y ?? 0) - 4)).toBeLessThan(0.05);
+  expect(a?.rotation).toBe(90);
+
+  // Spread: distance from the centroid grows by 1.15.
+  await page.getByRole('button', { name: 'Spread out' }).click();
+  state = await readDoc(page);
+  expect(Math.abs((state.positions[fid]?.[p1]?.y ?? 0) - (3 - 1.15))).toBeLessThan(0.05);
+  expect(Math.abs((state.positions[fid]?.[p2]?.y ?? 0) - (3 + 1.15))).toBeLessThan(0.05);
+});
+
 test('section markers: add, name, persist, remove', async ({ page }) => {
   await page.getByRole('button', { name: 'Add section' }).click();
   // The rename box is focused immediately; type a name and commit.

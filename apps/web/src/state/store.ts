@@ -20,7 +20,13 @@ import {
 } from '@gridstage/shared-types';
 import { planTransition } from '@gridstage/path-planner';
 import { reindexByStart } from './formationOrder';
-import { alignSpots, distributeSpots, mirrorAcrossX } from './formationTransform';
+import {
+  alignSpots,
+  distributeSpots,
+  mirrorAcrossX,
+  rotateSpots,
+  stretchSpots,
+} from './formationTransform';
 import type { Spot } from './formationTransform';
 import { byOrder } from './interpolate';
 import { newProp } from './props';
@@ -113,6 +119,10 @@ interface EditorState extends DocState {
   alignSelected: (axis: 'row' | 'col') => void;
   /** Evenly space selected performers between their extremes on one axis. */
   distributeSelected: (axis: 'x' | 'y') => void;
+  /** Rotate the selected group around its centroid (deg clockwise, facing too). */
+  rotateSelectedAsGroup: (deltaDeg: number) => void;
+  /** Spread (>1) or tighten (<1) the selected group around its centroid. */
+  stretchSelected: (factor: number) => void;
 
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
   /** Same, but WITHOUT recording history — for continuous drag frames. */
@@ -821,6 +831,42 @@ export const useEditor = create<EditorState>()(
                 ...s.positions,
                 [fid]: applySpots(current, distributeSpots(selected, axis)),
               },
+            };
+          }),
+
+        rotateSelectedAsGroup: (deltaDeg) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined || s.selectedPerformerIds.length < 2) return {};
+            const selected = selectedSpots(current, s.selectedPerformerIds);
+            if (selected.length < 2) return {};
+            const b = stageBounds(s.performance);
+            const rotated = rotateSpots(selected, deltaDeg).map((spot) => ({
+              ...spot,
+              x: clamp(spot.x, b.minX, b.maxX),
+              y: clamp(spot.y, b.minY, b.maxY),
+            }));
+            return {
+              positions: { ...s.positions, [fid]: applySpots(current, rotated) },
+            };
+          }),
+
+        stretchSelected: (factor) =>
+          mutateDoc((s) => {
+            const fid = s.selectedFormationId;
+            const current = s.positions[fid];
+            if (current === undefined || s.selectedPerformerIds.length < 2) return {};
+            const selected = selectedSpots(current, s.selectedPerformerIds);
+            if (selected.length < 2) return {};
+            const b = stageBounds(s.performance);
+            const stretched = stretchSpots(selected, factor).map((spot) => ({
+              ...spot,
+              x: clamp(spot.x, b.minX, b.maxX),
+              y: clamp(spot.y, b.minY, b.maxY),
+            }));
+            return {
+              positions: { ...s.positions, [fid]: applySpots(current, stretched) },
             };
           }),
 

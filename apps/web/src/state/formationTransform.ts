@@ -52,6 +52,43 @@ export function distributeSpots(spots: readonly Spot[], axis: 'x' | 'y'): Spot[]
   return sorted.map((s, i) => ({ ...s, [axis]: lo + step * i }));
 }
 
+/**
+ * Rotate the group around its centroid, degrees clockwise on the plan view
+ * (y grows downstage, so the y-down rotation formula reads clockwise).
+ * Facing turns with the group, matching the rotation convention (clockwise+).
+ */
+export function rotateSpots(spots: readonly Spot[], deltaDeg: number): Spot[] {
+  const cx = mean(spots.map((s) => s.x));
+  const cy = mean(spots.map((s) => s.y));
+  const rad = (deltaDeg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return spots.map((s) => {
+    const dx = s.x - cx;
+    const dy = s.y - cy;
+    return {
+      ...s,
+      x: cx + dx * cos - dy * sin,
+      y: cy + dx * sin + dy * cos,
+      rotation: normalizeDeg(s.rotation + deltaDeg),
+    };
+  });
+}
+
+/**
+ * Spread (factor > 1) or tighten (factor < 1) the group: scale every offset
+ * from the centroid. Shape and facing are preserved; only spacing changes.
+ */
+export function stretchSpots(spots: readonly Spot[], factor: number): Spot[] {
+  const cx = mean(spots.map((s) => s.x));
+  const cy = mean(spots.map((s) => s.y));
+  return spots.map((s) => ({
+    ...s,
+    x: cx + (s.x - cx) * factor,
+    y: cy + (s.y - cy) * factor,
+  }));
+}
+
 /** Swap the placement (position + facing) of exactly two spots. */
 export function swapSpots(a: Spot, b: Spot): { a: Spot; b: Spot } {
   return {

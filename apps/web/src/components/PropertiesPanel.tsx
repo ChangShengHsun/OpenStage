@@ -195,6 +195,8 @@ function MultiSelectSection({ count }: { count: number }): ReactElement {
   const swapSelected = useEditor((s) => s.swapSelected);
   const alignSelected = useEditor((s) => s.alignSelected);
   const distributeSelected = useEditor((s) => s.distributeSelected);
+  const rotateSelectedAsGroup = useEditor((s) => s.rotateSelectedAsGroup);
+  const stretchSelected = useEditor((s) => s.stretchSelected);
 
   return (
     <>
@@ -254,6 +256,46 @@ function MultiSelectSection({ count }: { count: number }): ReactElement {
             </button>
           </div>
         )}
+        <div className="expert-only-ui" style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.rotateGroupCcwTitle}
+            onClick={() => rotateSelectedAsGroup(-15)}
+          >
+            {t.performer.rotateGroupCcw}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.rotateGroupCwTitle}
+            onClick={() => rotateSelectedAsGroup(15)}
+          >
+            {t.performer.rotateGroupCw}
+          </button>
+        </div>
+        <div className="expert-only-ui" style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.spreadTitle}
+            onClick={() => stretchSelected(1.15)}
+          >
+            {t.performer.spread}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            style={{ flex: 1 }}
+            title={t.performer.tightenTitle}
+            onClick={() => stretchSelected(1 / 1.15)}
+          >
+            {t.performer.tighten}
+          </button>
+        </div>
       </div>
     </>
   );

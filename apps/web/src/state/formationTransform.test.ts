@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { alignSpots, distributeSpots, mirrorAcrossX, swapSpots } from './formationTransform';
+import {
+  alignSpots,
+  distributeSpots,
+  mirrorAcrossX,
+  rotateSpots,
+  stretchSpots,
+  swapSpots,
+} from './formationTransform';
 import type { Spot } from './formationTransform';
 
 const spot = (id: string, x: number, y: number, rotation = 0): Spot => ({ id, x, y, rotation });
@@ -15,6 +22,53 @@ describe('mirrorAcrossX', () => {
     const original = [spot('a', 2, 3, 45), spot('b', 9, 1, 200)];
     const twice = mirrorAcrossX(mirrorAcrossX(original, 12), 12);
     expect(twice).toEqual(original);
+  });
+});
+
+describe('rotateSpots', () => {
+  it('rotates 90° clockwise around the centroid and turns facing with it', () => {
+    // Two spots on a horizontal line, centroid (5, 3).
+    const out = rotateSpots([spot('a', 4, 3, 0), spot('b', 6, 3, 90)], 90);
+    // a: offset (-1, 0) → (0, -1): one meter upstage of the centroid.
+    expect(out[0]?.x).toBeCloseTo(5);
+    expect(out[0]?.y).toBeCloseTo(2);
+    expect(out[0]?.rotation).toBeCloseTo(90);
+    // b: offset (1, 0) → (0, 1): one meter downstage.
+    expect(out[1]?.x).toBeCloseTo(5);
+    expect(out[1]?.y).toBeCloseTo(4);
+    expect(out[1]?.rotation).toBeCloseTo(180);
+  });
+
+  it('four 90° turns return to the start', () => {
+    const original = [spot('a', 1, 1, 30), spot('b', 4, 2, 200), spot('c', 2, 5, 0)];
+    let turned = original;
+    for (let step = 0; step < 4; step++) turned = rotateSpots(turned, 90);
+    turned.forEach((s, i) => {
+      expect(s.x).toBeCloseTo(original[i]?.x ?? NaN);
+      expect(s.y).toBeCloseTo(original[i]?.y ?? NaN);
+      expect(s.rotation).toBeCloseTo(original[i]?.rotation ?? NaN);
+    });
+  });
+});
+
+describe('stretchSpots', () => {
+  it('scales offsets from the centroid and keeps facing', () => {
+    const out = stretchSpots([spot('a', 4, 3, 45), spot('b', 6, 3, 0)], 2);
+    expect(out[0]).toEqual({ id: 'a', x: 3, y: 3, rotation: 45 });
+    expect(out[1]).toEqual({ id: 'b', x: 7, y: 3, rotation: 0 });
+  });
+
+  it('spread then tighten with inverse factors round-trips', () => {
+    const original = [spot('a', 1, 1), spot('b', 4, 2), spot('c', 2, 5)];
+    const back = stretchSpots(stretchSpots(original, 1.15), 1 / 1.15);
+    back.forEach((s, i) => {
+      expect(s.x).toBeCloseTo(original[i]?.x ?? NaN);
+      expect(s.y).toBeCloseTo(original[i]?.y ?? NaN);
+    });
+  });
+
+  it('a lone spot stays put (its own centroid)', () => {
+    expect(stretchSpots([spot('a', 3, 4)], 2)[0]).toEqual(spot('a', 3, 4));
   });
 });
 
