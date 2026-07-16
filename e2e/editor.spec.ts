@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
@@ -6,6 +6,7 @@ import type { Page } from '@playwright/test';
 interface PersistedDoc {
   state: {
     performance: {
+      id: string;
       beatMarkersMs: number[];
       bpm: number | null;
       sections?: { id: string; timeMs: number; name: string }[];
@@ -484,6 +485,49 @@ test('personal walk sheets PDF downloads', async ({ page }) => {
   await page.getByRole('button', { name: 'Export', exact: true }).click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('walk-sheets.pdf');
+});
+
+test('choreography JSON exports and imports back as a new library entry', async ({ page }) => {
+  // Export the open doc as a .gridstage.json file.
+  await page.getByRole('button', { name: 'Export…' }).click();
+  await page.getByRole('button', { name: 'File · Choreography (.json)' }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toContain('.gridstage.json');
+  const filePath = await download.path();
+  const buffer = await readFile(filePath);
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  // Import it back: always lands as a NEW doc (fresh id) and opens.
+  const idBefore = (await readDoc(page)).performance.id;
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByLabel('Choreography file').setInputFiles({
+    name: 'untitled-performance.gridstage.json',
+    mimeType: 'application/json',
+    buffer,
+  });
+  // Success closes the dialog and opens the imported copy.
+  await expect(page.locator('.library-dialog')).not.toBeVisible();
+  const idAfter = (await readDoc(page)).performance.id;
+  expect(idAfter).not.toBe(idBefore);
+
+  // The library now lists both docs with the same title.
+  await page.getByRole('button', { name: 'Library' }).click();
+  await expect(
+    page.locator('.library-row-title', { hasText: 'Untitled performance' }),
+  ).toHaveCount(2);
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  // A garbage file is rejected with a message, dialog stays open.
+  await page.getByRole('button', { name: 'Library' }).click();
+  await page.getByLabel('Choreography file').setInputFiles({
+    name: 'junk.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"foo": 1}'),
+  });
+  await expect(page.getByText('Not a GridStage choreography file')).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
 });
 
 test('badge normalizes and persists', async ({ page }) => {

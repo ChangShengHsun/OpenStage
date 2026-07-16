@@ -5,12 +5,14 @@ import {
   createDoc,
   deleteDoc,
   duplicateDoc,
+  importDocIntoLibrary,
   listLibrary,
   openDoc,
   saveActiveDoc,
   setDocArchived,
   setDocTags,
 } from '../state/library';
+import { parseDocFile } from '../state/docFile';
 import type { LibraryEntry } from '../state/library';
 import { isCollabActive } from '../collab/collab';
 import { NumberField } from './NumberField';
@@ -48,8 +50,23 @@ export function LibraryDialog(): ReactElement {
   const [sizeKey, setSizeKey] = useState<StageSizeKey>('proscenium');
   const [customW, setCustomW] = useState(12);
   const [customH, setCustomH] = useState(8);
+  const [importNote, setImportNote] = useState('');
+  const importInputRef = useRef<HTMLInputElement>(null);
   // Switching documents mid-session would corrupt the shared Yjs doc.
   const collab = isCollabActive();
+
+  const onImportFile = (file: File): void => {
+    void file.text().then((text) => {
+      const doc = parseDocFile(text);
+      if (doc === null) {
+        setImportNote(t.library.importFailed);
+        window.setTimeout(() => setImportNote(''), 4000);
+        return;
+      }
+      importDocIntoLibrary(doc);
+      dialogRef.current?.close();
+    });
+  };
 
   const refresh = (): void => {
     saveActiveDoc();
@@ -191,14 +208,42 @@ export function LibraryDialog(): ReactElement {
         </div>
         <div className="export-dialog-foot library-new-foot">
           {!showNewForm ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={collab}
-              onClick={() => setShowNewForm(true)}
-            >
-              {t.library.newDoc}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={collab}
+                onClick={() => setShowNewForm(true)}
+              >
+                {t.library.newDoc}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={collab}
+                title={t.library.importTitle}
+                onClick={() => importInputRef.current?.click()}
+              >
+                {t.library.importDoc}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json,application/json"
+                aria-label={t.library.importFileAria}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = ''; // allow re-picking the same file
+                  if (file !== undefined) onImportFile(file);
+                }}
+              />
+              {importNote !== '' && (
+                <span className="mono" role="status">
+                  {importNote}
+                </span>
+              )}
+            </>
           ) : (
             <div className="library-new-form">
               <input

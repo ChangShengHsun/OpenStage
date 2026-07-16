@@ -139,6 +139,29 @@ export function duplicateDoc(id: string, newTitle: string): void {
   void copyBackgroundBetweenDocs(id, copy.performance.id);
 }
 
+/**
+ * Add an imported document to the library and open it. Always clones under a
+ * fresh id: no collision handling needed, and re-importing a backup can never
+ * overwrite an existing doc.
+ */
+export function importDocIntoLibrary(doc: DocState): void {
+  saveActiveDoc();
+  const copy = cloneDocAs(doc, crypto.randomUUID(), doc.performance.title);
+  localStorage.setItem(docKey(copy.performance.id), JSON.stringify(copy));
+  writeIndex([
+    {
+      id: copy.performance.id,
+      title: copy.performance.title,
+      updatedAt: new Date().toISOString(),
+      tags: [],
+      archived: false,
+    },
+    ...readIndex(),
+  ]);
+  useEditor.getState().loadDoc(copy);
+  saveActiveDoc();
+}
+
 /** Remove a CLOSED document; the UI never offers this for the open one. */
 export function deleteDoc(id: string): void {
   localStorage.removeItem(docKey(id));
