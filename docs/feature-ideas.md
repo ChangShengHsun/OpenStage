@@ -117,33 +117,31 @@ is not repeated here — only what's still missing.
 
 Functional:
 
-- ⬜ **Group rotate + stretch/scale** (M) — completes the transform set
-  (swap/mirror/align/distribute exist in `state/formationTransform.ts`);
-  the market leader has all four quick actions.
-- ⬜ **Choreography file export/import (JSON)** (S) — share a whole doc
-  without a server, as competitors do with their document files. Cheapest
-  gap; also doubles as a browser-independent backup. (Verify it truly
-  doesn't exist first — ExportDialog showed no JSON option on 2026-07-16.)
-- ⬜ **Dancer shapes / state markers** (M) — competitors let a dancer's
-  shape show a state (kneel, jump, small hand prop). We only have
-  color + facing arrow + badge.
+- ✅ **Group rotate + stretch/scale** (2026-07-17) — rotate ±15° around the
+  group centroid (facing follows) + spread/tighten ×1.15, in the
+  multi-select panel; pure fns in `state/formationTransform.ts`.
+- ✅ **Choreography file export/import (JSON)** (2026-07-17) — Export →
+  File writes `<title>.gridstage.json`; Library → Import brings it back
+  under a fresh id (can never overwrite). Media blobs not included.
+- ✅ **Dancer shapes / state markers** (2026-07-17) — per-FORMATION shape
+  ring (square/triangle/diamond) on `FormationPosition.marker`, edited in
+  the performer panel, hidden during playback.
 
 Non-functional (from user reviews, not feature lists):
 
 - ⬜ **Responsive / touch layout** (L) — the single biggest gap. The
   competitors' core scenario is a phone on the rehearsal floor; GridStage
   is unusable on mobile today.
-- ⬜ **Data-safety story** (M) — competitors have cloud auto-backup +
-  device transfer. Our localStorage/IndexedDB dies with "clear browsing
-  data" and is bound to one browser. JSON export/import above is step 1;
-  accounts / cloud sync is the long-term answer.
-- ⬜ **60-performer stress test** (S) — commercial apps advertise 60–100
-  dancers. We have never measured drag/playback at that scale; one
-  scripted check settles it.
-- ⬜ **Timing-edit regression check** (S) — competitor users complain that
-  fixing an early music-sync point shifts and ruins all later formations.
-  Verify our timeline doesn't share the failure mode (edit an early
-  formation's start with later ones synced), pin with a test.
+- 🔶→✅ **Data-safety step 1** (2026-07-17) — JSON export/import + a weekly
+  backup-nudge banner once a doc holds real work. Long term (accounts /
+  cloud sync) still open.
+- ✅ **60-performer stress test** (2026-07-17) — permanent e2e seeds 60
+  performers × 4 formations: drag lands correctly, playback ~57fps
+  (floor 20 in CI). Bonus: found+fixed a real bug — stale formation
+  selection after rehydration left the stage empty until the first edit.
+- ✅ **Timing-edit regression check** (2026-07-17) — pinned in
+  formationOrder.test.ts: editing an early start never shifts later
+  formations.
 - **Community / distribution** (not code) — the market leader has 457K+
   users, top app-store ratings, official tutorials, active social media vs
   our zero. Demo videos + in-app guide (in progress) are the right first
