@@ -1189,11 +1189,16 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('gridstage-doc')
 }
 
 /** Ensure a valid formation is always selected (after load or deletion). */
-useEditor.subscribe((s) => {
+function healFormationSelection(s: EditorState): void {
   if (s.formations.length > 0 && !s.formations.some((f) => f.id === s.selectedFormationId)) {
     const first = [...s.formations].sort((a, b) => a.orderIndex - b.orderIndex)[0];
     if (first !== undefined) {
       useEditor.setState({ selectedFormationId: first.id });
     }
   }
-});
+}
+useEditor.subscribe(healFormationSelection);
+// Rehydration happens inside create(), BEFORE the subscriber above exists, so
+// a reloaded doc sits with a stale selection until the first set() — the stage
+// looks empty and drags write nowhere. Heal once at boot as well.
+healFormationSelection(useEditor.getState());

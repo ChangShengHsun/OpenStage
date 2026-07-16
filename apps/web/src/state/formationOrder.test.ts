@@ -53,4 +53,21 @@ describe('reindexByStart', () => {
     reindexByStart(base, 'a', 9999);
     expect(JSON.stringify(base)).toBe(snapshot);
   });
+
+  // Regression pin (2026-07-16 audit): competitor apps are reported to shift
+  // ALL later formations when an early sync point is corrected. Our starts
+  // are absolute, so editing one formation must leave every other one's
+  // timing byte-identical — this test fails if anyone ever makes starts
+  // relative or "helpfully" ripples an edit downstream.
+  it('editing an early start never shifts later formations', () => {
+    const timed = [f('a', 0, 0), f('b', 1, 5000), f('c', 2, 10000), f('d', 3, 15000)];
+    const result = reindexByStart(timed, 'a', 2000);
+    const later = result.filter((x) => x.id !== 'a');
+    expect(later.map((x) => ({ id: x.id, start: x.startTimeMs, dur: x.durationMs }))).toEqual([
+      { id: 'b', start: 5000, dur: 1000 },
+      { id: 'c', start: 10000, dur: 1000 },
+      { id: 'd', start: 15000, dur: 1000 },
+    ]);
+    expect(result.map((x) => x.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
 });

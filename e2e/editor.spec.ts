@@ -530,6 +530,111 @@ test('choreography JSON exports and imports back as a new library entry', async 
   await page.getByRole('button', { name: 'Close' }).click();
 });
 
+test('60 performers: playback holds a usable frame rate and drag still works', async ({
+  page,
+}) => {
+  // Seed a 60-performer, 4-formation doc straight into the persist envelope —
+  // clicking "Add performer" 60 times would dominate the test's runtime.
+  await page.evaluate(() => {
+    const performanceId = 'stress-perf';
+    const performers = Array.from({ length: 60 }, (_, i) => ({
+      id: `p${i}`,
+      performanceId,
+      name: `Dancer ${i + 1}`,
+      color: '#e05252',
+      role: '',
+      avatarUrl: null,
+    }));
+    const formations = Array.from({ length: 4 }, (_, i) => ({
+      id: `f${i}`,
+      performanceId,
+      orderIndex: i,
+      startTimeMs: i * 4000,
+      durationMs: 2000,
+      transitionType: 'linear',
+      name: `Formation ${i + 1}`,
+    }));
+    // 10×6 grid; each formation shifts the grid so every transition moves
+    // all 60 dancers (worst-case interpolation load).
+    const positions: Record<string, Record<string, object>> = {};
+    for (let fi = 0; fi < 4; fi++) {
+      const inner: Record<string, object> = {};
+      for (let i = 0; i < 60; i++) {
+        inner[`p${i}`] = {
+          formationId: `f${fi}`,
+          performerId: `p${i}`,
+          x: 1 + (i % 10) + (fi % 2) * 0.8,
+          y: 1 + Math.floor(i / 10) + (fi % 2) * 0.6,
+          rotation: 0,
+        };
+      }
+      positions[`f${fi}`] = inner;
+    }
+    const doc = {
+      performance: {
+        id: performanceId,
+        orgId: 'local',
+        title: 'Stress test',
+        stageWidth: 12,
+        stageHeight: 8,
+        bpm: null,
+        audioAssetId: null,
+        beatMarkersMs: [],
+        sections: [],
+        countSegments: [],
+      },
+      performers,
+      props: [],
+      formations,
+      positions,
+      comments: [],
+      annotations: [],
+    };
+    localStorage.setItem('gridstage-doc', JSON.stringify({ state: doc, version: 0 }));
+  });
+  await page.reload();
+  await page.getByText('Add performer').waitFor();
+  await expect(page.getByText('Dancer 60')).toBeVisible();
+
+  // Dragging one dancer among 60 still lands where it should (playhead at 0,
+  // so formation f0 is the one being edited; p0 sits at (1, 1)).
+  const from = meterToPx(1, 1);
+  const to = meterToPx(6, 7);
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(to.x, to.y, { steps: 10 });
+  await page.mouse.up();
+  const state = await readDoc(page);
+  const pos = state.positions['f0']?.['p0'];
+  expect(pos).toBeDefined();
+  expect(Math.abs((pos?.x ?? 0) - 6)).toBeLessThan(0.3);
+  expect(Math.abs((pos?.y ?? 0) - 7)).toBeLessThan(0.3);
+
+  // Play and count real rendered frames for 2 seconds of all-60 interpolation.
+  await page.getByRole('button', { name: 'Play' }).click();
+  const fps = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let frames = 0;
+        const startedAt = performance.now();
+        const tick = (): void => {
+          frames += 1;
+          if (performance.now() - startedAt >= 2000) {
+            resolve((frames * 1000) / (performance.now() - startedAt));
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  await page.getByRole('button', { name: 'Pause' }).click();
+  console.log(`[stress] 60-performer playback: ${fps.toFixed(1)} fps`);
+  // ponytail: 20fps floor is deliberately generous for CI machines; the
+  // console line above records the real number for humans to eyeball.
+  expect(fps).toBeGreaterThan(20);
+});
+
 test('badge normalizes and persists', async ({ page }) => {
   await page.getByText('Add performer').click();
   await page.getByText('Dancer 1').first().click();
