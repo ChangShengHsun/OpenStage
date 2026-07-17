@@ -428,6 +428,19 @@ test('video capture places detected dancers into the selected formation', async 
         { x: 110, y: 50, width: 20, height: 40, score: 0.85 },
       ]),
     );
+    // Stub pose too (M1 facing): first assigned dancer faces 90°, second 180°.
+    const posePath = '/src/vision/pose.ts';
+    const pose = (await import(posePath)) as {
+      setPoseOverride: (
+        fn: (
+          img: CanvasImageSource,
+          boxes: readonly unknown[],
+        ) => Promise<({ rotation: number } | null)[]>,
+      ) => void;
+    };
+    pose.setPoseOverride((img, boxes) =>
+      Promise.resolve(boxes.map((_, i) => ({ rotation: i === 0 ? 90 : 180 }))),
+    );
   });
 
   await page.getByRole('button', { name: 'Capture formation' }).click();
@@ -446,6 +459,11 @@ test('video capture places detected dancers into the selected formation', async 
       { x: 9, y: 6 },
     ]),
   );
+  // Facing (M1) landed too, via the stubbed pose model.
+  const rotations = Object.values(state.positions[fid] ?? {})
+    .map((p) => p.rotation)
+    .sort((a, b) => a - b);
+  expect(rotations).toEqual([90, 180]);
 });
 
 test('whole-video scan adds a formation per held position', async ({ page }) => {

@@ -87,6 +87,11 @@ export function invertHomography(h: Homography): Homography | null {
   return inv.map((v) => v / scale);
 }
 
+/** Normalize degrees into [0, 360) — the stage rotation convention. */
+export function normalizeStageRotation(deg: number): number {
+  return ((deg % 360) + 360) % 360;
+}
+
 /** Gaussian elimination with partial pivoting; null when singular. */
 function solveLinearSystem(a: number[][], b: number[]): number[] | null {
   const n = b.length;

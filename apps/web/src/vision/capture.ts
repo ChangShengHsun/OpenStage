@@ -1,5 +1,6 @@
 import { hungarian } from '@gridstage/path-planner';
 import { detectPeople, footPoint } from './detector';
+import type { PersonBox } from './detector';
 import { applyHomography, solveHomography } from './homography';
 import type { Point2 } from './homography';
 
@@ -20,13 +21,20 @@ const AMBIGUITY_MARGIN_M = 0.7;
 /** Padding cost for the square matrix — far above any real stage distance. */
 const PAD_COST = 1e6;
 
+export interface CapturedSpot extends Point2 {
+  /** Facing (deg, 0 = audience) when pose estimation resolved one (M1). */
+  rotation?: number;
+}
+
 export interface CaptureAssignment {
   /** performerId → captured stage position (meters). */
-  positions: Record<string, Point2>;
+  positions: Record<string, CapturedSpot>;
   /** Performers whose assignment had a near-tie — the UI selects these. */
   uncertainIds: string[];
   /** Raw usable detections (after the offstage filter). */
   detectedCount: number;
+  /** performerId → index into the detection list (for facing lookups). */
+  pointIndexByPerformer: Record<string, number>;
 }
 
 export interface ReferenceSpot {
@@ -45,7 +53,14 @@ export function assignPointsToPerformers(
   reference: readonly ReferenceSpot[],
 ): CaptureAssignment {
   const n = Math.max(points.length, reference.length);
-  if (n === 0) return { positions: {}, uncertainIds: [], detectedCount: points.length };
+  if (n === 0) {
+    return {
+      positions: {},
+      uncertainIds: [],
+      detectedCount: points.length,
+      pointIndexByPerformer: {},
+    };
+  }
   // Square cost matrix: rows = performers, columns = points, padded.
   const cost: number[][] = [];
   for (let i = 0; i < n; i++) {
@@ -60,13 +75,15 @@ export function assignPointsToPerformers(
     cost.push(row);
   }
   const assignment = hungarian(cost);
-  const positions: Record<string, Point2> = {};
+  const positions: Record<string, CapturedSpot> = {};
   const uncertainIds: string[] = [];
+  const pointIndexByPerformer: Record<string, number> = {};
   reference.forEach((ref, i) => {
     const j = assignment[i] ?? -1;
     const pt = j >= 0 ? points[j] : undefined;
     if (pt === undefined) return; // padded column: this performer keeps their spot
     positions[ref.performerId] = { x: pt.x, y: pt.y };
+    pointIndexByPerformer[ref.performerId] = j;
     const chosen = cost[i]?.[j] ?? 0;
     const nearTie = points.some(
       (other, k) =>
@@ -74,7 +91,7 @@ export function assignPointsToPerformers(
     );
     if (nearTie) uncertainIds.push(ref.performerId);
   });
-  return { positions, uncertainIds, detectedCount: points.length };
+  return { positions, uncertainIds, detectedCount: points.length, pointIndexByPerformer };
 }
 
 export type CaptureError = 'no-calibration' | 'no-people';
@@ -90,6 +107,7 @@ export async function captureAtTime(
   stageWidth: number,
   stageHeight: number,
   reference: readonly ReferenceSpot[],
+  options?: { withFacing?: boolean },
 ): Promise<CaptureAssignment | CaptureError> {
   const h = solveHomography(corners, [
     { x: 0, y: 0 },
@@ -99,15 +117,36 @@ export async function captureAtTime(
   ]);
   if (h === null) return 'no-calibration';
   const boxes = await detectPeople(video, video.videoWidth, video.videoHeight);
-  const points = boxes
-    .map((box) => applyHomography(h, footPoint(box)))
+  // Keep box↔point pairing so facing can look its box back up.
+  const onstage: { point: Point2; box: PersonBox }[] = boxes
+    .map((box) => ({ point: applyHomography(h, footPoint(box)), box }))
     .filter(
-      (p) =>
+      ({ point: p }) =>
         p.x > -OFFSTAGE_MARGIN_M &&
         p.x < stageWidth + OFFSTAGE_MARGIN_M &&
         p.y > -OFFSTAGE_MARGIN_M &&
         p.y < stageHeight + OFFSTAGE_MARGIN_M,
     );
-  if (points.length === 0) return 'no-people';
-  return assignPointsToPerformers(points, reference);
+  if (onstage.length === 0) return 'no-people';
+  const result = assignPointsToPerformers(
+    onstage.map((o) => o.point),
+    reference,
+  );
+  if (options?.withFacing === true) {
+    // One pose pass per ASSIGNED dancer (skip dropped extra detections).
+    const entries = Object.entries(result.pointIndexByPerformer);
+    const assignedBoxes = entries
+      .map(([, j]) => onstage[j]?.box)
+      .filter((b): b is PersonBox => b !== undefined);
+    const { estimateFacings } = await import('./pose');
+    const facings = await estimateFacings(video, assignedBoxes, h);
+    entries.forEach(([performerId], k) => {
+      const facing = facings[k];
+      const spot = result.positions[performerId];
+      if (facing !== null && facing !== undefined && spot !== undefined) {
+        spot.rotation = facing.rotation;
+      }
+    });
+  }
+  return result;
 }

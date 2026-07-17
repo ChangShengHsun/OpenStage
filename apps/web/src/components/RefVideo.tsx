@@ -173,6 +173,7 @@ export function RefVideo(): ReactElement | null {
                 s.performance.stageWidth,
                 s.performance.stageHeight,
                 reference,
+                { withFacing: true },
               );
               if (result === 'no-calibration') {
                 setCaptureNote(t.refVideo.degenerateCorners);

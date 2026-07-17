@@ -127,7 +127,10 @@ interface EditorState extends DocState {
 
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
   /** Write many positions in one undo step (video-capture drafts). */
-  setPositionsBulk: (formationId: string, updates: Record<string, { x: number; y: number }>) => void;
+  setPositionsBulk: (
+    formationId: string,
+    updates: Record<string, { x: number; y: number; rotation?: number }>,
+  ) => void;
   /**
    * Append the formations found by a whole-video scan (M2) in ONE undo
    * step. Existing formations are never touched; durations come from how
@@ -940,6 +943,9 @@ export const useEditor = create<EditorState>()(
                 ...existing,
                 x: clamp(p.x, b.minX, b.maxX),
                 y: clamp(p.y, b.minY, b.maxY),
+                ...(p.rotation !== undefined
+                  ? { rotation: ((p.rotation % 360) + 360) % 360 }
+                  : {}),
               };
             }
             return { positions: { ...s.positions, [formationId]: next } };
