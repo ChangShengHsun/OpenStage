@@ -354,6 +354,7 @@ export const en = {
 
   stage: {
     title: 'Stage',
+    closeDrawerAria: 'Close side panel',
     width: 'Width (m)',
     depth: 'Depth (m)',
     audiencePosition: 'Audience side',

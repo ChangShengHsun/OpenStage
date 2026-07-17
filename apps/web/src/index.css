@@ -878,6 +878,149 @@ input[type='color'] {
   flex-shrink: 0;
 }
 
+/* ---- Mobile / touch (docs/mobile.md) --------------------------------- */
+
+.topbar-title {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+body {
+  /* No pull-to-refresh mid-drag on touch browsers. */
+  overscroll-behavior: none;
+}
+
+button,
+input,
+select,
+label {
+  /* Kill the 300ms double-tap-zoom delay; pan/pinch still work. */
+  touch-action: manipulation;
+}
+
+/* Phone layout: single column, side panels become slide-in drawers.
+   Breakpoint must match NARROW_QUERY in hooks/useIsNarrow.ts — App.tsx
+   stops setting inline grid styles below it. */
+@media (max-width: 760px) {
+  .app,
+  .app.view-mode {
+    grid-template-columns: 1fr;
+    grid-template-rows: 46px 1fr 170px;
+    grid-template-areas:
+      'topbar'
+      'stage'
+      'timeline';
+  }
+
+  .topbar,
+  .timeline-toolbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topbar::-webkit-scrollbar,
+  .timeline-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .topbar {
+    gap: 10px;
+    padding: 0 10px;
+  }
+  .topbar-title {
+    width: 130px;
+  }
+
+  /* Off-canvas drawers (position:fixed opts them out of the grid). */
+  .app-narrow .cast-panel,
+  .app-narrow .props-panel {
+    position: fixed;
+    top: 46px;
+    bottom: 0;
+    width: min(82vw, 320px);
+    z-index: 40;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.5);
+    visibility: hidden;
+    transition:
+      transform 160ms ease-out,
+      visibility 0s 160ms;
+  }
+  .app-narrow .cast-panel {
+    left: 0;
+    transform: translateX(-100%);
+  }
+  .app-narrow .props-panel {
+    right: 0;
+    transform: translateX(100%);
+  }
+  .app-narrow.cast-open .cast-panel,
+  .app-narrow.props-open .props-panel {
+    transform: none;
+    visibility: visible;
+    transition: transform 160ms ease-out;
+  }
+
+  /* Edge tabs that open the drawers, vertical like flyrail labels. */
+  .drawer-tab {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 30;
+    padding: 12px 5px;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.08em;
+  }
+  .drawer-tab-cast {
+    left: 0;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+  }
+  .drawer-tab-props {
+    right: 0;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+  }
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 46px 0 0 0;
+    z-index: 35;
+    border: none;
+    padding: 0;
+    background: rgba(10, 8, 6, 0.5);
+    cursor: pointer;
+  }
+}
+
+/* Finger-sized targets; 16px inputs stop iOS from zooming the page on focus. */
+@media (pointer: coarse) {
+  .btn {
+    padding: 9px 13px;
+    font-size: 14px;
+  }
+  input[type='text'],
+  input[type='number'],
+  select {
+    font-size: 16px;
+    padding: 8px 10px;
+  }
+  .cast-row {
+    padding: 9px 12px;
+  }
+  .zoom-controls .btn {
+    padding: 7px 11px;
+  }
+  .panel-resize-col {
+    width: 14px;
+  }
+  .panel-resize-row {
+    height: 14px;
+  }
+  .section-flag-x,
+  .comment-delete {
+    font-size: 16px;
+    padding: 2px 5px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

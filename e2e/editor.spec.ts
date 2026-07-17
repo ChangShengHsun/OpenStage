@@ -1481,8 +1481,9 @@ test.describe('touch', () => {
 
   test('tapping a performer on the canvas selects it', async ({ page }) => {
     await page.getByText('Add performer').click();
-    // deselect (adding auto-selects), then tap the mark at its default spot
-    await page.getByLabel('Stage canvas').click({ position: { x: 10, y: 10 } });
+    // deselect (adding auto-selects), then tap the mark at its default spot;
+    // x>14 clears the panel resizer, widened for coarse pointers
+    await page.getByLabel('Stage canvas').click({ position: { x: 24, y: 10 } });
     await expect(page.getByLabel('Facing degrees')).toBeHidden();
     const at = meterToPx(1.5, 6.5);
     await page.touchscreen.tap(at.x, at.y);
@@ -1640,4 +1641,31 @@ test('PNG snapshot of the selected formation downloads', async ({ page }) => {
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/-formation-1\.png$/);
   expect((await stat(await download.path())).size).toBeGreaterThan(5_000);
+});
+
+test('phone layout: side panels become drawers behind edge tabs', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const castPanel = page.locator('.cast-panel');
+  const castTab = page.getByRole('button', { name: 'Cast', exact: true });
+
+  // Desktop resize handles are gone; panels start off-canvas.
+  await expect(castTab).toBeVisible();
+  await expect(page.locator('.panel-resize')).toHaveCount(0);
+  await expect(castPanel).toBeHidden();
+
+  await castTab.click();
+  await expect(castPanel).toBeVisible();
+  await page.getByText('Add performer').click();
+  await expect(castPanel).toContainText('Dancer 1');
+
+  // Tapping the dimmed strip right of the drawer closes it (the drawer
+  // itself covers the backdrop's center, so aim for the visible part).
+  await page.getByRole('button', { name: 'Close side panel' }).click({ position: { x: 370, y: 300 } });
+  await expect(castPanel).toBeHidden();
+
+  // Growing the window back restores the three-column layout.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(castTab).toBeHidden();
+  await expect(castPanel).toBeVisible();
+  await expect(page.locator('.panel-resize')).toHaveCount(3);
 });

@@ -383,6 +383,7 @@ export const zh: Messages = {
     pinTitle: '在這個隊形上釘一則文字註記；點擊註記可刪除',
     pinPrompt: '註記內容：',
     canvasAria: '舞台畫布',
+    closeDrawerAria: '關閉側邊面板',
     audience: '觀眾席',
     loading3d: '正在載入 3D 預覽…',
     to3dTitle: '3D 預覽（僅檢視）',

@@ -48,11 +48,11 @@ export function TopBar(): ReactElement {
       </span>
       <input
         type="text"
+        className="topbar-title"
         aria-label={t.topbar.performanceTitleAria}
         value={title}
         readOnly={isViewMode}
         onChange={(e) => setTitle(e.target.value)}
-        style={{ width: 200 }}
       />
       {!isViewMode && <LibraryDialog />}
       <button type="button" className="btn edit-only" onClick={undo} title={t.topbar.undoTitle}>

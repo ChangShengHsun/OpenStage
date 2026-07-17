@@ -11,6 +11,7 @@ import { StageCanvas } from './components/StageCanvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { Timeline } from './components/Timeline';
 import { useAppHotkeys } from './hooks/useAppHotkeys';
+import { useIsNarrow } from './hooks/useIsNarrow';
 import { usePlayback } from './hooks/usePlayback';
 import { clearAudio, setAudioBlob, switchAudioToDoc } from './audio/audioPlayer';
 import { useEditor } from './state/store';
@@ -35,6 +36,9 @@ export function App(): ReactElement {
   const { togglePlay } = usePlayback();
   useAppHotkeys(togglePlay);
   const refVideoSplit = useRefVideo((s) => s.objectUrl !== null && s.layout === 'split');
+  const isNarrow = useIsNarrow();
+  // Phone layout: side panels become slide-in drawers, one open at a time.
+  const [drawer, setDrawer] = useState<'cast' | 'props' | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [audioVersion, setAudioVersion] = useState(0);
@@ -57,15 +61,21 @@ export function App(): ReactElement {
 
   return (
     <div
-      className={`app${isViewMode ? ' view-mode' : ''}${uiMode === 'easy' ? ' ui-easy' : ''}`}
+      className={`app${isViewMode ? ' view-mode' : ''}${uiMode === 'easy' ? ' ui-easy' : ''}${
+        isNarrow ? ' app-narrow' : ''
+      }${drawer === 'cast' ? ' cast-open' : ''}${drawer === 'props' ? ' props-open' : ''}`}
       // View mode's 0/1fr/0 columns come from CSS; don't override them.
+      // Narrow mode's single-column grid also comes from CSS — inline styles
+      // here would defeat the media query, so set none.
       style={
-        isViewMode
-          ? { gridTemplateRows: `46px 1fr ${timelineHeight}px` }
-          : {
-              gridTemplateColumns: `${castWidth}px 1fr ${propsWidth}px`,
-              gridTemplateRows: `46px 1fr ${timelineHeight}px`,
-            }
+        isNarrow
+          ? undefined
+          : isViewMode
+            ? { gridTemplateRows: `46px 1fr ${timelineHeight}px` }
+            : {
+                gridTemplateColumns: `${castWidth}px 1fr ${propsWidth}px`,
+                gridTemplateRows: `46px 1fr ${timelineHeight}px`,
+              }
       }
     >
       <TopBar />
@@ -135,13 +145,41 @@ export function App(): ReactElement {
           void clearAudio().then(() => setAudioVersion((v) => v + 1));
         }}
       />
-      {!isViewMode && (
+      {!isNarrow && !isViewMode && (
         <>
           <PanelResizer side="cast" />
           <PanelResizer side="props" />
         </>
       )}
-      <PanelResizer side="timeline" />
+      {!isNarrow && <PanelResizer side="timeline" />}
+      {isNarrow && !isViewMode && (
+        <>
+          <button
+            type="button"
+            className="btn drawer-tab drawer-tab-cast"
+            aria-expanded={drawer === 'cast'}
+            onClick={() => setDrawer(drawer === 'cast' ? null : 'cast')}
+          >
+            {t.cast.title}
+          </button>
+          <button
+            type="button"
+            className="btn drawer-tab drawer-tab-props"
+            aria-expanded={drawer === 'props'}
+            onClick={() => setDrawer(drawer === 'props' ? null : 'props')}
+          >
+            {t.props.title}
+          </button>
+          {drawer !== null && (
+            <button
+              type="button"
+              className="drawer-backdrop"
+              aria-label={t.stage.closeDrawerAria}
+              onClick={() => setDrawer(null)}
+            />
+          )}
+        </>
+      )}
       {!isViewMode && <BackupNudge />}
       <input
         ref={fileInputRef}
