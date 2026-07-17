@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/desktop",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "GridStage desktop shell (Electron) — wraps the web app into an installable app",
   "license": "MIT",
@@ -44,6 +44,9 @@
       "owner": "ChangShengHsun",
       "repo": "GridStage",
       "releaseType": "release"
+    },
+    "releaseInfo": {
+      "releaseNotesFile": "release-notes.md"
     }
   },
   "dependencies": {
