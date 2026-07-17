@@ -2,6 +2,11 @@
 # users (Android/iOS) can open it in a browser and "Add to Home Screen" —
 # the PWA manifest + service worker make it behave like an installed app.
 # Live at: https://changshenghsun.github.io/GridStage/
+#
+# Publishes by force-pushing the build to the gh-pages branch (a generated
+# artifact branch, its history is disposable). The official actions/deploy-pages
+# path needs Pages pre-enabled via repo Settings, which GITHUB_TOKEN cannot do;
+# creating a gh-pages branch enables Pages automatically.
 name: Deploy to GitHub Pages
 
 on:
@@ -10,11 +15,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# One deploy at a time; a newer push supersedes a running one.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -22,9 +24,6 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,12 +36,15 @@ jobs:
         run: pnpm --filter @gridstage/web build
         env:
           GRIDSTAGE_BASE: /GridStage/
-      - uses: actions/configure-pages@v5
-        with:
-          # First run enables Pages on the repo via the API.
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/web/dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish dist to the gh-pages branch
+        run: |
+          cd apps/web/dist
+          touch .nojekyll
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "deploy ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
