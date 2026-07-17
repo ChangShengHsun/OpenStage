@@ -384,6 +384,67 @@ test('stage-corner calibration shows a live meter grid and draggable pins', asyn
   await expect(overlay).toBeHidden();
 });
 
+test('video capture places detected dancers into the selected formation', async ({ page }) => {
+  await page.getByText('Add performer').click();
+  await page.getByText('Add performer').click();
+  await page.getByLabel('Reference video file').setInputFiles({
+    name: 'ref.webm',
+    mimeType: 'video/webm',
+    buffer: await recordTestWebm(page),
+  });
+  await expect(page.getByLabel('Reference video', { exact: true })).toBeVisible();
+
+  // Calibrate straight from the store (the pin-drag UX has its own test):
+  // corners = the full 160x120 frame, so pixels map linearly onto the 12x8m
+  // stage. Stub the detector with two known boxes; foot points land at
+  // (3, 4) and (9, 6) meters.
+  await page.evaluate(async () => {
+    const refVideo = (await import('/src/state/refVideo.ts')) as {
+      useRefVideo: {
+        getState: () => { setCorners: (c: { x: number; y: number }[]) => void };
+      };
+    };
+    refVideo.useRefVideo.getState().setCorners([
+      { x: 0, y: 0 },
+      { x: 160, y: 0 },
+      { x: 160, y: 120 },
+      { x: 0, y: 120 },
+    ]);
+    const detector = (await import('/src/vision/detector.ts')) as {
+      setDetectorOverride: (
+        fn: (
+          img: CanvasImageSource,
+          w: number,
+          h: number,
+        ) => Promise<{ x: number; y: number; width: number; height: number; score: number }[]>,
+      ) => void;
+    };
+    detector.setDetectorOverride(() =>
+      Promise.resolve([
+        { x: 30, y: 20, width: 20, height: 40, score: 0.9 },
+        { x: 110, y: 50, width: 20, height: 40, score: 0.85 },
+      ]),
+    );
+  });
+
+  await page.getByRole('button', { name: 'Capture formation' }).click();
+  await expect(page.getByText(/Placed 2 dancers/)).toBeVisible();
+
+  const state = await readDoc(page);
+  const fid = state.formations[0]?.id ?? '';
+  const spots = Object.values(state.positions[fid] ?? {}).map((p) => ({
+    x: Math.round(p.x * 10) / 10,
+    y: Math.round(p.y * 10) / 10,
+  }));
+  expect(spots).toHaveLength(2);
+  expect(spots).toEqual(
+    expect.arrayContaining([
+      { x: 3, y: 4 },
+      { x: 9, y: 6 },
+    ]),
+  );
+});
+
 test('section markers: add, name, persist, remove', async ({ page }) => {
   await page.getByRole('button', { name: 'Add section' }).click();
   // The rename box is focused immediately; type a name and commit.

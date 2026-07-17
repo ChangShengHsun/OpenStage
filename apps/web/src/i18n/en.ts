@@ -139,6 +139,16 @@ export const en = {
     cornerUpRight: 'upstage R',
     cornerDownRight: 'downstage R',
     cornerDownLeft: 'downstage L',
+    capture: 'Capture formation',
+    captureTitle:
+      'Detect the dancers on this paused frame and place them into the selected formation — a draft you then fix by dragging',
+    captureNeedsCalibration: 'Calibrate the stage corners first',
+    captureRunning: 'Detecting dancers…',
+    captureNoPeople: 'No people found on the stage in this frame',
+    captureDone: (placed: number, uncertain: number): string =>
+      uncertain === 0
+        ? `Placed ${placed} dancer${placed === 1 ? '' : 's'} — drag to fine-tune`
+        : `Placed ${placed} dancer${placed === 1 ? '' : 's'}; ${uncertain} uncertain (selected) — check who is who`,
   },
 
   backup: {

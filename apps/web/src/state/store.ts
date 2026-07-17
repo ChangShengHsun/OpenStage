@@ -126,6 +126,8 @@ interface EditorState extends DocState {
   stretchSelected: (factor: number) => void;
 
   setPosition: (formationId: string, performerId: string, x: number, y: number) => void;
+  /** Write many positions in one undo step (video-capture drafts). */
+  setPositionsBulk: (formationId: string, updates: Record<string, { x: number; y: number }>) => void;
   /** Same, but WITHOUT recording history — for continuous drag frames. */
   setPositionLive: (formationId: string, performerId: string, x: number, y: number) => void;
   setRotation: (formationId: string, performerId: string, rotation: number) => void;
@@ -911,6 +913,24 @@ export const useEditor = create<EditorState>()(
                 },
               },
             };
+          }),
+
+        setPositionsBulk: (formationId, updates) =>
+          mutateDoc((s) => {
+            const current = s.positions[formationId];
+            if (current === undefined) return {};
+            const b = stageBounds(s.performance);
+            const next = { ...current };
+            for (const [performerId, p] of Object.entries(updates)) {
+              const existing = next[performerId];
+              if (existing === undefined) continue;
+              next[performerId] = {
+                ...existing,
+                x: clamp(p.x, b.minX, b.maxX),
+                y: clamp(p.y, b.minY, b.maxY),
+              };
+            }
+            return { positions: { ...s.positions, [formationId]: next } };
           }),
 
         setCurveControl: (formationId, performerId, x, y) =>

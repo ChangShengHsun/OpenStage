@@ -23,7 +23,10 @@ export function RefVideo(): ReactElement | null {
   const clear = useRefVideo((s) => s.clear);
   const calibrating = useRefVideo((s) => s.calibrating);
   const setCalibrating = useRefVideo((s) => s.setCalibrating);
+  const corners = useRefVideo((s) => s.corners);
   const [error, setError] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [captureNote, setCaptureNote] = useState('');
   // PiP position, draggable by the header (session-local, default bottom-left).
   const [pos, setPos] = useState({ left: 12, bottom: 12 });
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -139,7 +142,67 @@ export function RefVideo(): ReactElement | null {
         >
           {calibrating ? t.refVideo.calibrateDone : t.refVideo.calibrate}
         </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={corners === null || capturing}
+          title={corners === null ? t.refVideo.captureNeedsCalibration : t.refVideo.captureTitle}
+          onClick={() => {
+            const video = videoRef.current;
+            if (video === null || corners === null) return;
+            setCapturing(true);
+            setCaptureNote(t.refVideo.captureRunning);
+            void (async () => {
+              const { captureAtTime } = await import('../vision/capture');
+              const s = useEditor.getState();
+              const fid = s.selectedFormationId;
+              const current = s.positions[fid] ?? {};
+              const reference = s.performers
+                .map((p) => {
+                  const pos = current[p.id];
+                  return pos === undefined
+                    ? null
+                    : { performerId: p.id, x: pos.x, y: pos.y };
+                })
+                .filter((r): r is { performerId: string; x: number; y: number } => r !== null);
+              const result = await captureAtTime(
+                video,
+                corners,
+                s.performance.stageWidth,
+                s.performance.stageHeight,
+                reference,
+              );
+              if (result === 'no-calibration') {
+                setCaptureNote(t.refVideo.degenerateCorners);
+              } else if (result === 'no-people') {
+                setCaptureNote(t.refVideo.captureNoPeople);
+              } else {
+                s.setPositionsBulk(fid, result.positions);
+                s.setPerformerSelection(result.uncertainIds);
+                setCaptureNote(
+                  t.refVideo.captureDone(
+                    Object.keys(result.positions).length,
+                    result.uncertainIds.length,
+                  ),
+                );
+              }
+              window.setTimeout(() => setCaptureNote(''), 6000);
+            })()
+              .catch((err: unknown) => {
+                setCaptureNote(err instanceof Error ? err.message : String(err));
+                window.setTimeout(() => setCaptureNote(''), 6000);
+              })
+              .finally(() => setCapturing(false));
+          }}
+        >
+          {t.refVideo.capture}
+        </button>
       </div>
+      {captureNote !== '' && (
+        <p className="ref-video-note" role="status">
+          {captureNote}
+        </p>
+      )}
     </div>
   );
 }

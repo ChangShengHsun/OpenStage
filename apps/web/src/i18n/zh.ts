@@ -137,6 +137,15 @@ export const zh: Messages = {
     cornerUpRight: '後台右',
     cornerDownRight: '前台右',
     cornerDownLeft: '前台左',
+    capture: '擷取隊形',
+    captureTitle: '偵測目前暫停畫面中的舞者，放進選取的隊形——先出草稿，再由你拖曳微調',
+    captureNeedsCalibration: '請先校準舞台四角',
+    captureRunning: '偵測舞者中…',
+    captureNoPeople: '這一格畫面裡找不到舞台上的人',
+    captureDone: (placed: number, uncertain: number): string =>
+      uncertain === 0
+        ? `已放置 ${placed} 位舞者——拖曳微調即可`
+        : `已放置 ${placed} 位舞者；${uncertain} 位不確定（已選取）——請確認誰是誰`,
   },
 
   backup: {
