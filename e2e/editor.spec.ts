@@ -234,18 +234,14 @@ test('state marker is per-formation and survives reload', async ({ page }) => {
   await page.locator('#pos-marker').selectOption('triangle');
   let state = await readDoc(page);
   type WithMarker = { marker?: string };
-  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe(
-    'triangle',
-  );
+  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe('triangle');
   expect((state.positions[f1?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBeUndefined();
 
   // Clearing removes the key; persists across reload.
   await page.reload();
   await page.getByText('Add performer').waitFor();
   state = await readDoc(page);
-  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe(
-    'triangle',
-  );
+  expect((state.positions[f2?.id ?? '']?.[pid] as WithMarker | undefined)?.marker).toBe('triangle');
   // Reload healed the selection back to formation 1 — reselect formation 2
   // (its block's aria-label is "Formation <name>, starts at <t>s").
   await page.getByRole('button', { name: /^Formation Formation 2,/ }).click();
@@ -346,7 +342,10 @@ test('reference video: loads, seeks with the offset, switches layouts, drives pl
   expect(paused).toBe(true);
 
   // Close removes the panel; playback falls back to the rAF clock.
-  await page.getByLabel('Reference video', { exact: true }).getByRole('button', { name: 'Close' }).click();
+  await page
+    .getByLabel('Reference video', { exact: true })
+    .getByRole('button', { name: 'Close' })
+    .click();
   await expect(page.getByLabel('Reference video', { exact: true })).toBeHidden();
 });
 
@@ -544,12 +543,22 @@ test('whole-video scan adds a formation per held position', async ({ page }) => 
     x: Math.round(p.x),
     y: Math.round(p.y),
   }));
-  expect(spotsA).toEqual(expect.arrayContaining([{ x: 3, y: 4 }, { x: 9, y: 6 }]));
+  expect(spotsA).toEqual(
+    expect.arrayContaining([
+      { x: 3, y: 4 },
+      { x: 9, y: 6 },
+    ]),
+  );
   const spotsB = Object.values(state.positions[holdB?.id ?? ''] ?? {}).map((p) => ({
     x: Math.round(p.x),
     y: Math.round(p.y),
   }));
-  expect(spotsB).toEqual(expect.arrayContaining([{ x: 6, y: 2 }, { x: 3, y: 6 }]));
+  expect(spotsB).toEqual(
+    expect.arrayContaining([
+      { x: 6, y: 2 },
+      { x: 3, y: 6 },
+    ]),
+  );
 
   // One Undo removes the whole scan.
   await page.getByRole('button', { name: 'Undo' }).click();
@@ -889,9 +898,9 @@ test('choreography JSON exports and imports back as a new library entry', async 
 
   // The library now lists both docs with the same title.
   await page.getByRole('button', { name: 'Library' }).click();
-  await expect(
-    page.locator('.library-row-title', { hasText: 'Untitled performance' }),
-  ).toHaveCount(2);
+  await expect(page.locator('.library-row-title', { hasText: 'Untitled performance' })).toHaveCount(
+    2,
+  );
   await page.getByRole('button', { name: 'Close' }).click();
 
   // A garbage file is rejected with a message, dialog stays open.
@@ -905,9 +914,7 @@ test('choreography JSON exports and imports back as a new library entry', async 
   await page.getByRole('button', { name: 'Close' }).click();
 });
 
-test('60 performers: playback holds a usable frame rate and drag still works', async ({
-  page,
-}) => {
+test('60 performers: playback holds a usable frame rate and drag still works', async ({ page }) => {
   // Seed a 60-performer, 4-formation doc straight into the persist envelope —
   // clicking "Add performer" 60 times would dominate the test's runtime.
   await page.evaluate(() => {
@@ -1660,7 +1667,9 @@ test('phone layout: side panels become drawers behind edge tabs', async ({ page 
 
   // Tapping the dimmed strip right of the drawer closes it (the drawer
   // itself covers the backdrop's center, so aim for the visible part).
-  await page.getByRole('button', { name: 'Close side panel' }).click({ position: { x: 370, y: 300 } });
+  await page
+    .getByRole('button', { name: 'Close side panel' })
+    .click({ position: { x: 370, y: 300 } });
   await expect(castPanel).toBeHidden();
 
   // Growing the window back restores the three-column layout.

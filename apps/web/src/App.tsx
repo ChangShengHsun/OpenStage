@@ -86,54 +86,54 @@ export function App(): ReactElement {
       >
         <RefVideo />
         <div className="stage-canvas-slot">
-        {show3d ? (
-          <Suspense fallback={<p className="empty-note">{t.stage.loading3d}</p>}>
-            <Stage3D />
-          </Suspense>
-        ) : (
-          <StageCanvas />
-        )}
-        <div className="canvas-tools">
-          {!show3d && (
-            <>
-              <button
-                type="button"
-                className={`btn edit-only${snapToGrid ? ' btn-active' : ''}`}
-                aria-pressed={snapToGrid}
-                title={t.stage.snapTitle}
-                onClick={() => setSnapToGrid(!snapToGrid)}
-              >
-                {t.stage.snap}
-              </button>
-              <button
-                type="button"
-                className={`btn edit-only expert-only-ui${annotateMode === 'pen' ? ' btn-active' : ''}`}
-                aria-pressed={annotateMode === 'pen'}
-                title={t.stage.penTitle}
-                onClick={() => setAnnotateMode(annotateMode === 'pen' ? 'off' : 'pen')}
-              >
-                {t.stage.pen}
-              </button>
-              <button
-                type="button"
-                className={`btn edit-only expert-only-ui${annotateMode === 'pin' ? ' btn-active' : ''}`}
-                aria-pressed={annotateMode === 'pin'}
-                title={t.stage.pinTitle}
-                onClick={() => setAnnotateMode(annotateMode === 'pin' ? 'off' : 'pin')}
-              >
-                {t.stage.pin}
-              </button>
-            </>
+          {show3d ? (
+            <Suspense fallback={<p className="empty-note">{t.stage.loading3d}</p>}>
+              <Stage3D />
+            </Suspense>
+          ) : (
+            <StageCanvas />
           )}
-          <button
-            type="button"
-            className="btn view-toggle"
-            onClick={() => setShow3d((v) => !v)}
-            title={show3d ? t.stage.to2dTitle : t.stage.to3dTitle}
-          >
-            {show3d ? '2D' : '3D'}
-          </button>
-        </div>
+          <div className="canvas-tools">
+            {!show3d && (
+              <>
+                <button
+                  type="button"
+                  className={`btn edit-only${snapToGrid ? ' btn-active' : ''}`}
+                  aria-pressed={snapToGrid}
+                  title={t.stage.snapTitle}
+                  onClick={() => setSnapToGrid(!snapToGrid)}
+                >
+                  {t.stage.snap}
+                </button>
+                <button
+                  type="button"
+                  className={`btn edit-only expert-only-ui${annotateMode === 'pen' ? ' btn-active' : ''}`}
+                  aria-pressed={annotateMode === 'pen'}
+                  title={t.stage.penTitle}
+                  onClick={() => setAnnotateMode(annotateMode === 'pen' ? 'off' : 'pen')}
+                >
+                  {t.stage.pen}
+                </button>
+                <button
+                  type="button"
+                  className={`btn edit-only expert-only-ui${annotateMode === 'pin' ? ' btn-active' : ''}`}
+                  aria-pressed={annotateMode === 'pin'}
+                  title={t.stage.pinTitle}
+                  onClick={() => setAnnotateMode(annotateMode === 'pin' ? 'off' : 'pin')}
+                >
+                  {t.stage.pin}
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              className="btn view-toggle"
+              onClick={() => setShow3d((v) => !v)}
+              title={show3d ? t.stage.to2dTitle : t.stage.to3dTitle}
+            >
+              {show3d ? '2D' : '3D'}
+            </button>
+          </div>
         </div>
       </main>
       <PropertiesPanel />
