@@ -75,6 +75,24 @@ PDF or video, or copy it via a live-share link. Real-time collaboration in the
 desktop build needs a collab server to point at (see below); solo editing does
 not.
 
+## Use it on a phone or tablet (Android / iOS)
+
+No app store needed — GridStage is a **PWA** (Progressive Web App, a web page
+that installs like a native app):
+
+1. Open **<https://changshenghsun.github.io/GridStage/>** in the phone's
+   browser (Chrome on Android, Safari on iOS).
+2. Install it:
+   - **Android / Chrome:** menu **⋮ → Add to Home screen → Install**.
+   - **iOS / Safari:** **Share → Add to Home Screen**.
+3. Launch it from the home screen — it opens full-screen, works offline after
+   the first visit, and saves your work on the device.
+
+On a phone the side panels tuck away behind the **Cast** / **Props** edge
+tabs; on a tablet the full three-column layout appears. Live collaboration
+needs a self-hosted collab server (see below), so it is not available on the
+public page — everything else runs entirely on the device.
+
 ### Building the installer yourself (maintainers)
 
 This step _does_ need Node.js 20+ and pnpm — it is how the `.exe` above is
