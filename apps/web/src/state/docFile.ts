@@ -73,9 +73,7 @@ export function exportActiveDocFile(): void {
     comments: s.comments,
     annotations: s.annotations,
   };
-  const url = URL.createObjectURL(
-    new Blob([serializeDoc(doc)], { type: 'application/json' }),
-  );
+  const url = URL.createObjectURL(new Blob([serializeDoc(doc)], { type: 'application/json' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = `${safeFilename(doc.performance.title)}.gridstage.json`;

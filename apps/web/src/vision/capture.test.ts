@@ -34,10 +34,7 @@ describe('assignPointsToPerformers', () => {
   });
 
   it('leaves undetected dancers untouched (fewer points than dancers)', () => {
-    const result = assignPointsToPerformers(
-      [{ x: 2, y: 3 }],
-      [ref('a', 2.2, 3), ref('b', 10, 5)],
-    );
+    const result = assignPointsToPerformers([{ x: 2, y: 3 }], [ref('a', 2.2, 3), ref('b', 10, 5)]);
     expect(result.positions['a']).toEqual({ x: 2, y: 3 });
     expect(result.positions['b']).toBeUndefined();
   });

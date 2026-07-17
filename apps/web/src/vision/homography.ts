@@ -20,10 +20,7 @@ export type Homography = readonly number[];
  * Returns null when the system is degenerate (e.g. three collinear corners),
  * which the calibration UI reports as "re-place your pins".
  */
-export function solveHomography(
-  src: readonly Point2[],
-  dst: readonly Point2[],
-): Homography | null {
+export function solveHomography(src: readonly Point2[], dst: readonly Point2[]): Homography | null {
   if (src.length !== 4 || dst.length !== 4) return null;
   // Build the 8×8 system A·h = b for h = [h11 h12 h13 h21 h22 h23 h31 h32].
   const a: number[][] = [];

@@ -54,13 +54,13 @@ batch converter first:
 
 ## 4. Technical stack (license-safe, all client-side)
 
-| Piece | Choice | License | Notes |
-|---|---|---|---|
-| Person detection | YOLOX (or RF-DETR) via onnxruntime-web | Apache-2.0 / MIT wrapper (libreyolo-web) | WebGPU in browser; the AGPL trap (Ultralytics YOLO) is simply avoided |
-| Image→stage mapping | 4-point homography (DLT) | ~40 lines of our own math | User clicks the 4 stage corners ON the video once; we already know the stage's real w×h in meters |
-| Identity | existing Hungarian matcher | ours | vs. previous formation's positions |
-| Facing (M1) | RTMDet+RTMPose via onnxruntime-web | Apache-2.0 | per-crop; shoulder keypoints → rotation |
-| Tracking (M2 only) | OC-SORT (better for non-linear dance motion) or ByteTrack | MIT (TS ports exist) | only needed for auto-segmentation of a whole video |
+| Piece               | Choice                                                    | License                                  | Notes                                                                                             |
+| ------------------- | --------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Person detection    | YOLOX (or RF-DETR) via onnxruntime-web                    | Apache-2.0 / MIT wrapper (libreyolo-web) | WebGPU in browser; the AGPL trap (Ultralytics YOLO) is simply avoided                             |
+| Image→stage mapping | 4-point homography (DLT)                                  | ~40 lines of our own math                | User clicks the 4 stage corners ON the video once; we already know the stage's real w×h in meters |
+| Identity            | existing Hungarian matcher                                | ours                                     | vs. previous formation's positions                                                                |
+| Facing (M1)         | RTMDet+RTMPose via onnxruntime-web                        | Apache-2.0                               | per-crop; shoulder keypoints → rotation                                                           |
+| Tracking (M2 only)  | OC-SORT (better for non-linear dance motion) or ByteTrack | MIT (TS ports exist)                     | only needed for auto-segmentation of a whole video                                                |
 
 All inference is client-side (WebGPU, wasm fallback): zero server cost,
 private by default, consistent with the local-first product. Offline

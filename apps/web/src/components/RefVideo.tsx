@@ -162,9 +162,7 @@ export function RefVideo(): ReactElement | null {
               const reference = s.performers
                 .map((p) => {
                   const pos = current[p.id];
-                  return pos === undefined
-                    ? null
-                    : { performerId: p.id, x: pos.x, y: pos.y };
+                  return pos === undefined ? null : { performerId: p.id, x: pos.x, y: pos.y };
                 })
                 .filter((r): r is { performerId: string; x: number; y: number } => r !== null);
               const result = await captureAtTime(
@@ -223,9 +221,7 @@ export function RefVideo(): ReactElement | null {
               const reference = s.performers
                 .map((p) => {
                   const pos = current[p.id];
-                  return pos === undefined
-                    ? null
-                    : { performerId: p.id, x: pos.x, y: pos.y };
+                  return pos === undefined ? null : { performerId: p.id, x: pos.x, y: pos.y };
                 })
                 .filter((r): r is { performerId: string; x: number; y: number } => r !== null);
               const held = await scanVideo(video, {

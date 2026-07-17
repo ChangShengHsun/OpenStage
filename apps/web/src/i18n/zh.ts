@@ -223,7 +223,8 @@ export const zh: Messages = {
     tighten: '收攏',
     tightenTitle: '縮小選取群組的間距（隊形形狀不變）',
     markerLabel: '狀態記號',
-    markerTitle: '只在「這個隊形」中圍著這位舞者畫一個形狀——標記蹲下、跳躍、拿道具等，意義由團隊自訂',
+    markerTitle:
+      '只在「這個隊形」中圍著這位舞者畫一個形狀——標記蹲下、跳躍、拿道具等，意義由團隊自訂',
     markerNone: '無',
     markerSquare: '□ 方形',
     markerTriangle: '△ 三角形',

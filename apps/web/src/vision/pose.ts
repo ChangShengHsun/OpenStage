@@ -121,7 +121,11 @@ async function facingForBox(
   const simccY = out['simcc_y'];
   if (simccX === undefined || simccY === undefined) return null;
 
-  const left = decodeKeypoint(simccX.data as Float32Array, simccY.data as Float32Array, LEFT_SHOULDER);
+  const left = decodeKeypoint(
+    simccX.data as Float32Array,
+    simccY.data as Float32Array,
+    LEFT_SHOULDER,
+  );
   const right = decodeKeypoint(
     simccX.data as Float32Array,
     simccY.data as Float32Array,

@@ -943,9 +943,7 @@ export const useEditor = create<EditorState>()(
                 ...existing,
                 x: clamp(p.x, b.minX, b.maxX),
                 y: clamp(p.y, b.minY, b.maxY),
-                ...(p.rotation !== undefined
-                  ? { rotation: ((p.rotation % 360) + 360) % 360 }
-                  : {}),
+                ...(p.rotation !== undefined ? { rotation: ((p.rotation % 360) + 360) % 360 } : {}),
               };
             }
             return { positions: { ...s.positions, [formationId]: next } };

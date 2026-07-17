@@ -102,15 +102,15 @@ playback hook reaches it via a module-level ref (same idiom as
 
 ## Files touched (v1)
 
-| File | Change |
-|---|---|
-| `state/refVideo.ts` | new session store + video element ref |
-| `components/RefVideo.tsx` | new: PiP/split shell, controls, file input |
-| `hooks/usePlayback.ts` | clock ladder + paused-scrub effect + audio mute |
-| `App.tsx` | mount `<RefVideo />` in `.stage-area` |
-| `components/Timeline.tsx` | "Ref video" button |
-| `i18n/en.ts` + `zh.ts` | ~8 keys |
-| `index.css` | `.ref-video-pip`, `.stage-area-split` |
+| File                      | Change                                          |
+| ------------------------- | ----------------------------------------------- |
+| `state/refVideo.ts`       | new session store + video element ref           |
+| `components/RefVideo.tsx` | new: PiP/split shell, controls, file input      |
+| `hooks/usePlayback.ts`    | clock ladder + paused-scrub effect + audio mute |
+| `App.tsx`                 | mount `<RefVideo />` in `.stage-area`           |
+| `components/Timeline.tsx` | "Ref video" button                              |
+| `i18n/en.ts` + `zh.ts`    | ~8 keys                                         |
+| `index.css`               | `.ref-video-pip`, `.stage-area-split`           |
 
 Estimate: M (one solid day). No new dependencies; native `<video>` covers
 everything (rung 4 of the ladder).

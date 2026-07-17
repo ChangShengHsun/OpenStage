@@ -31,10 +31,7 @@ const MAX_SAMPLES = 1200;
 
 /** Mean per-dancer distance between two sampled position maps; Infinity
  *  when they share no dancers (a gap breaks any hold). */
-export function meanDisplacement(
-  a: Record<string, Point2>,
-  b: Record<string, Point2>,
-): number {
+export function meanDisplacement(a: Record<string, Point2>, b: Record<string, Point2>): number {
   let sum = 0;
   let count = 0;
   for (const [id, pa] of Object.entries(a)) {
@@ -75,7 +72,10 @@ export function segmentHeldFormations(samples: readonly ScanSample[]): HeldForma
   };
 
   for (const sample of samples) {
-    if (previous !== null && meanDisplacement(previous.positions, sample.positions) < HOLD_THRESHOLD_M) {
+    if (
+      previous !== null &&
+      meanDisplacement(previous.positions, sample.positions) < HOLD_THRESHOLD_M
+    ) {
       if (hold === null) {
         // The PREVIOUS sample was the first still one.
         hold = { startMs: previous.timelineMs, endMs: previous.timelineMs, sums: {}, n: 0 };
@@ -92,10 +92,7 @@ export function segmentHeldFormations(samples: readonly ScanSample[]): HeldForma
   return held;
 }
 
-function accumulate(
-  hold: { sums: Record<string, Point2>; n: number },
-  sample: ScanSample,
-): void {
+function accumulate(hold: { sums: Record<string, Point2>; n: number }, sample: ScanSample): void {
   for (const [id, p] of Object.entries(sample.positions)) {
     const s = hold.sums[id] ?? { x: 0, y: 0 };
     hold.sums[id] = { x: s.x + p.x, y: s.y + p.y };
