@@ -1,3 +1,15 @@
+# GridStage 0.8.4
+
+## Sharper eyes, working phones
+
+- **Detection model upgraded to YOLOX-L** (COCO mAP 40.5 → 50.1): far
+  better on the small distant figures rehearsal footage is full of. The
+  model is a ~200MB one-time download on first capture/scan.
+- **Phone layout fixed**: the timeline toolbar silently stretched the
+  page to ~890px on phones — the stage and topbar ran off the screen
+  with no way to pan to them. The page now stays at screen width and
+  each toolbar scrolls on its own.
+
 # GridStage 0.8.2
 
 ## Video review, rebuilt

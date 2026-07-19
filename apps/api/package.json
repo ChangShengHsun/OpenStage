@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/api",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "private": true,
   "description": "GridStage REST API (NestJS)",
   "license": "MIT",

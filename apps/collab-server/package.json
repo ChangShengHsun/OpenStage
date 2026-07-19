@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/collab-server",
-  "version": "0.8.2",
+  "version": "0.8.4",
   "private": true,
   "description": "GridStage realtime collaboration server (Yjs over websockets)",
   "license": "MIT",
