@@ -2,7 +2,7 @@ import { hungarian } from '@gridstage/path-planner';
 import { detectPeople, footPoint } from './detector';
 import type { PersonBox } from './detector';
 import { applyHomography, solveHomography } from './homography';
-import type { Point2 } from './homography';
+import type { Homography, Point2 } from './homography';
 
 /**
  * One-click "capture this frame" (M0 of
@@ -47,10 +47,13 @@ export interface ReferenceSpot {
  * Pure: match detected stage points to performers by minimizing total
  * distance from their current (reference) spots. Extra detections are
  * dropped; missing detections leave those performers untouched.
+ * `extraCost` (meters-equivalent) lets the scan add appearance dissimilarity
+ * on top of distance; ambiguity (nearTie) stays position-only.
  */
 export function assignPointsToPerformers(
   points: readonly Point2[],
   reference: readonly ReferenceSpot[],
+  extraCost?: (referenceIndex: number, pointIndex: number) => number,
 ): CaptureAssignment {
   const n = Math.max(points.length, reference.length);
   if (n === 0) {
@@ -69,7 +72,9 @@ export function assignPointsToPerformers(
     for (let j = 0; j < n; j++) {
       const pt = points[j];
       row.push(
-        ref === undefined || pt === undefined ? PAD_COST : Math.hypot(ref.x - pt.x, ref.y - pt.y),
+        ref === undefined || pt === undefined
+          ? PAD_COST
+          : Math.hypot(ref.x - pt.x, ref.y - pt.y) + (extraCost?.(i, j) ?? 0),
       );
     }
     cost.push(row);
@@ -97,18 +102,16 @@ export function assignPointsToPerformers(
 export type CaptureError = 'no-calibration' | 'no-people';
 
 /**
- * Detect people on the video's CURRENT frame and place them on the stage.
- * `corners` are the calibration pins (video-intrinsic px, upstage-left,
- * upstage-right, downstage-right, downstage-left).
+ * Detect people on the video's CURRENT frame and map their foot points onto
+ * the stage (meters). No identity assignment — the scan reuses these raw
+ * points when it re-chains identities through a transition.
  */
-export async function captureAtTime(
+export async function detectOnstage(
   video: HTMLVideoElement,
   corners: readonly Point2[],
   stageWidth: number,
   stageHeight: number,
-  reference: readonly ReferenceSpot[],
-  options?: { withFacing?: boolean },
-): Promise<CaptureAssignment | CaptureError> {
+): Promise<{ onstage: { point: Point2; box: PersonBox }[]; h: Homography } | CaptureError> {
   const h = solveHomography(corners, [
     { x: 0, y: 0 },
     { x: stageWidth, y: 0 },
@@ -128,6 +131,25 @@ export async function captureAtTime(
         p.y < stageHeight + OFFSTAGE_MARGIN_M,
     );
   if (onstage.length === 0) return 'no-people';
+  return { onstage, h };
+}
+
+/**
+ * Detect people on the video's CURRENT frame and place them on the stage.
+ * `corners` are the calibration pins (video-intrinsic px, upstage-left,
+ * upstage-right, downstage-right, downstage-left).
+ */
+export async function captureAtTime(
+  video: HTMLVideoElement,
+  corners: readonly Point2[],
+  stageWidth: number,
+  stageHeight: number,
+  reference: readonly ReferenceSpot[],
+  options?: { withFacing?: boolean },
+): Promise<CaptureAssignment | CaptureError> {
+  const detected = await detectOnstage(video, corners, stageWidth, stageHeight);
+  if (typeof detected === 'string') return detected;
+  const { onstage, h } = detected;
   const result = assignPointsToPerformers(
     onstage.map((o) => o.point),
     reference,

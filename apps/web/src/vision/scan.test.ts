@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { advanceReference, meanDisplacement, segmentHeldFormations } from './scan';
-import type { ScanSample } from './scan';
+import {
+  advanceTracks,
+  appearanceCost,
+  meanDisplacement,
+  predictSpots,
+  segmentHeldFormations,
+} from './scan';
+import type { ScanSample, TrackedSpot } from './scan';
+import { assignPointsToPerformers } from './capture';
+import { cosineSimilarity, mergeEmbedding } from './reid';
 
 const sample = (timelineMs: number, spots: Record<string, [number, number]>): ScanSample => ({
   timelineMs,
@@ -88,29 +96,92 @@ describe('segmentHeldFormations', () => {
   });
 });
 
-describe('advanceReference', () => {
-  it('keeps unmatched performers instead of dropping them', () => {
-    const reference = [
-      { performerId: 'a', x: 1, y: 1 },
-      { performerId: 'b', x: 5, y: 5 },
-    ];
-    // Only a was detected this sample; b must survive at their old spot.
-    const next = advanceReference(reference, { a: { x: 2, y: 2 } });
-    expect(next).toEqual([
-      { performerId: 'a', x: 2, y: 2 },
-      { performerId: 'b', x: 5, y: 5 },
-    ]);
+describe('advanceTracks', () => {
+  it('moves matched dancers and derives their velocity', () => {
+    const tracks: TrackedSpot[] = [{ performerId: 'a', x: 1, y: 1, vx: 0, vy: 0 }];
+    const next = advanceTracks(tracks, { a: { x: 3, y: 1 } }, 1000);
+    expect(next[0]).toEqual({ performerId: 'a', x: 3, y: 1, vx: 2, vy: 0, embedding: null });
   });
 
-  it('never shrinks across a run of sparse detections', () => {
-    let reference = [
-      { performerId: 'a', x: 1, y: 1 },
-      { performerId: 'b', x: 5, y: 5 },
-      { performerId: 'c', x: 9, y: 2 },
+  it('keeps unmatched performers (velocity zeroed) instead of dropping them', () => {
+    const tracks: TrackedSpot[] = [
+      { performerId: 'a', x: 1, y: 1, vx: 0, vy: 0 },
+      { performerId: 'b', x: 5, y: 5, vx: 1, vy: 1 },
     ];
-    reference = advanceReference(reference, { a: { x: 1.5, y: 1 } });
-    reference = advanceReference(reference, { b: { x: 5, y: 5.5 } });
-    reference = advanceReference(reference, {});
-    expect(reference).toHaveLength(3);
+    const next = advanceTracks(tracks, { a: { x: 2, y: 2 } }, 1000);
+    expect(next).toHaveLength(2);
+    expect(next[1]).toEqual({ performerId: 'b', x: 5, y: 5, vx: 0, vy: 0 });
+  });
+
+  it('caps an implausible speed (teleporting detection noise)', () => {
+    const tracks: TrackedSpot[] = [{ performerId: 'a', x: 0, y: 0, vx: 0, vy: 0 }];
+    const next = advanceTracks(tracks, { a: { x: 10, y: 0 } }, 1000); // 10 m/s
+    expect(Math.hypot(next[0]?.vx ?? 0, next[0]?.vy ?? 0)).toBeCloseTo(3.5);
+  });
+});
+
+describe('predictSpots', () => {
+  it('extrapolates each track by its velocity', () => {
+    const tracks: TrackedSpot[] = [{ performerId: 'a', x: 2, y: 3, vx: 1, vy: -0.5 }];
+    expect(predictSpots(tracks, 2000)).toEqual([{ performerId: 'a', x: 4, y: 2 }]);
+  });
+
+  it('appearance vetoes a swap that position alone would make', () => {
+    // Both dancers STOPPED right where they crossed (velocity useless), and
+    // the detections sit slightly closer to the WRONG dancer's spot — but
+    // their outfits differ, so the appearance term flips the assignment.
+    const lookA = new Float32Array([1, 0]);
+    const lookB = new Float32Array([0, 1]);
+    const tracks: TrackedSpot[] = [
+      { performerId: 'a', x: 3, y: 2, vx: 0, vy: 0, embedding: lookA },
+      { performerId: 'b', x: 4, y: 2, vx: 0, vy: 0, embedding: lookB },
+    ];
+    // a's true detection (looks like a) is nearer b's track and vice versa.
+    const detections = [
+      { x: 3.8, y: 2 },
+      { x: 3.2, y: 2 },
+    ];
+    const embeddings = [lookA, lookB];
+    const positionOnly = assignPointsToPerformers(detections, tracks);
+    expect(positionOnly.positions['a']).toEqual({ x: 3.2, y: 2 }); // the swap
+    const withLook = assignPointsToPerformers(
+      detections,
+      tracks,
+      appearanceCost(tracks, embeddings),
+    );
+    expect(withLook.positions['a']).toEqual({ x: 3.8, y: 2 });
+    expect(withLook.positions['b']).toEqual({ x: 3.2, y: 2 });
+  });
+
+  it('appearance cost is zero when either side lacks an embedding', () => {
+    const tracks: TrackedSpot[] = [{ performerId: 'a', x: 0, y: 0, vx: 0, vy: 0 }];
+    expect(appearanceCost(tracks, [new Float32Array([1, 0])])(0, 0)).toBe(0);
+  });
+
+  it('mergeEmbedding drifts the look without losing its norm', () => {
+    const merged = mergeEmbedding(new Float32Array([1, 0]), new Float32Array([0, 1]), 0.2);
+    expect(cosineSimilarity(merged, merged)).toBeCloseTo(1); // unit length
+    // Still much closer to the old look than the new crop.
+    expect(cosineSimilarity(merged, new Float32Array([1, 0]))).toBeGreaterThan(0.9);
+  });
+
+  it('keeps two crossing dancers on their own headings (the swap bug)', () => {
+    // a walks right at 3 m/s, b walks left at 3 m/s; they pass each other.
+    // After 1s: a is at x=5, b at x=2 — matching against LAST positions
+    // would swap them (each detection is nearest the OTHER's old spot);
+    // matching against the prediction assigns them correctly.
+    const tracks: TrackedSpot[] = [
+      { performerId: 'a', x: 2, y: 2, vx: 3, vy: 0 },
+      { performerId: 'b', x: 5, y: 2, vx: -3, vy: 0 },
+    ];
+    const detections = [
+      { x: 2, y: 2 }, // this is b now
+      { x: 5, y: 2 }, // this is a now
+    ];
+    const staticAssign = assignPointsToPerformers(detections, tracks);
+    expect(staticAssign.positions['a']).toEqual({ x: 2, y: 2 }); // the swap
+    const predicted = assignPointsToPerformers(detections, predictSpots(tracks, 1000));
+    expect(predicted.positions['a']).toEqual({ x: 5, y: 2 });
+    expect(predicted.positions['b']).toEqual({ x: 2, y: 2 });
   });
 });

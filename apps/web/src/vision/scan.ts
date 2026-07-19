@@ -1,13 +1,25 @@
-import { captureAtTime } from './capture';
+import { assignPointsToPerformers, detectOnstage } from './capture';
 import type { ReferenceSpot } from './capture';
 import type { Point2 } from './homography';
+import { cosineSimilarity, embedPeople, mergeEmbedding } from './reid';
 
 /**
  * M2 — one-click whole-video scan (docs/video-to-formation-killer-app.md):
- * sample the reference video every second, run the M0 capture on each
- * sample (identity chained through Hungarian against the previous sample),
- * then segment the samples into HELD formations: windows where everyone
- * stands still. Transitions between holds never become formations.
+ * sample the reference video every second, detect people on each sample,
+ * chain identities via Hungarian matching, then segment the samples into
+ * HELD formations: windows where everyone stands still. Transitions
+ * between holds never become formations.
+ *
+ * Identity through transitions (the part that used to swap dancers):
+ * - Each dancer is a track with a VELOCITY; matching runs against the
+ *   constant-velocity prediction, not the last spot — two dancers crossing
+ *   paths keep their headings instead of trading identities.
+ * - When a coarse (1s) step shows movement, the interval is re-scanned at
+ *   250ms so nobody moves far enough between samples to be mistaken for a
+ *   neighbor. Only coarse samples feed formation segmentation.
+ * - Each track carries an APPEARANCE embedding (Re-ID, see reid.ts); the
+ *   matching cost adds dissimilarity in meters-equivalent, so dancers in
+ *   different outfits cannot trade identities even when their paths do.
  */
 
 export interface ScanSample {
@@ -28,6 +40,14 @@ const HOLD_THRESHOLD_M = 0.4;
 const CHANGE_THRESHOLD_M = 0.8;
 /** Guard rail: 1s sampling for up to 20 minutes of video. */
 const MAX_SAMPLES = 1200;
+/** Fine re-scan step through a transition — dancers move ≲0.9m in 250ms,
+ *  short enough that nearest-match identity cannot jump to a neighbor. */
+const FINE_STEP_MS = 250;
+/** Cap on believable dancer speed; anything faster is detector noise. */
+const MAX_SPEED_M_S = 3.5;
+/** Appearance dissimilarity → meters: cos 0.99 (same look) adds ~0.04m,
+ *  cos 0.6 (different outfit) adds ~1.6m — enough to veto a nearby swap. */
+const APPEARANCE_WEIGHT_M = 4;
 
 /** Mean per-dancer distance between two sampled position maps; Infinity
  *  when they share no dancers (a gap breaks any hold). */
@@ -109,20 +129,73 @@ function accumulate(
   hold.n += 1;
 }
 
+/** A tracked dancer: last confirmed spot + velocity (m/s) + look. */
+export interface TrackedSpot extends ReferenceSpot {
+  vx: number;
+  vy: number;
+  /** EMA appearance embedding; null until the first successful crop. */
+  embedding?: Float32Array | null;
+}
+
 /**
- * Pure: next identity-chain reference. Matched performers move to their
- * detected spot; unmatched performers KEEP their previous spot instead of
- * dropping out — replacing the reference with only the matched subset made
- * the chain shrink monotonically (one missed detection lost a dancer for
- * the rest of the scan, collapsing to a single tracked person).
+ * Pure: per-pair appearance cost for the assignment — meters-equivalent
+ * dissimilarity, 0 whenever either side has no embedding (matching then
+ * falls back to position + velocity alone).
  */
-export function advanceReference(
-  reference: readonly ReferenceSpot[],
+export function appearanceCost(
+  tracks: readonly TrackedSpot[],
+  embeddings: readonly (Float32Array | null)[],
+): (referenceIndex: number, pointIndex: number) => number {
+  return (i, j) => {
+    const trackEmbedding = tracks[i]?.embedding;
+    const pointEmbedding = embeddings[j];
+    if (trackEmbedding == null || pointEmbedding == null) return 0;
+    return APPEARANCE_WEIGHT_M * (1 - cosineSimilarity(trackEmbedding, pointEmbedding));
+  };
+}
+
+/**
+ * Pure: where each track is EXPECTED to be dtMs later (constant-velocity
+ * extrapolation). Matching against the prediction instead of the last spot
+ * is what keeps two crossing dancers from trading identities.
+ */
+export function predictSpots(tracks: readonly TrackedSpot[], dtMs: number): ReferenceSpot[] {
+  const dtS = dtMs / 1000;
+  return tracks.map((t) => ({
+    performerId: t.performerId,
+    x: t.x + t.vx * dtS,
+    y: t.y + t.vy * dtS,
+  }));
+}
+
+/**
+ * Pure: advance the tracks with this sample's assigned positions. Matched
+ * dancers move there and get a new velocity (capped at MAX_SPEED_M_S —
+ * faster implies a bad match, and an uncapped velocity would launch the
+ * next prediction across the stage). Unmatched dancers KEEP their spot with
+ * velocity zeroed — never dropped, or one missed detection would lose the
+ * dancer for the rest of the scan.
+ */
+export function advanceTracks(
+  tracks: readonly TrackedSpot[],
   positions: Record<string, Point2>,
-): ReferenceSpot[] {
-  return reference.map((r) => {
-    const p = positions[r.performerId];
-    return p === undefined ? r : { performerId: r.performerId, x: p.x, y: p.y };
+  dtMs: number,
+  embeddings?: Record<string, Float32Array | null>,
+): TrackedSpot[] {
+  const dtS = Math.max(dtMs / 1000, 1e-6);
+  return tracks.map((t) => {
+    const p = positions[t.performerId];
+    if (p === undefined) return { ...t, vx: 0, vy: 0 };
+    let vx = (p.x - t.x) / dtS;
+    let vy = (p.y - t.y) / dtS;
+    const speed = Math.hypot(vx, vy);
+    if (speed > MAX_SPEED_M_S) {
+      vx *= MAX_SPEED_M_S / speed;
+      vy *= MAX_SPEED_M_S / speed;
+    }
+    const e = embeddings?.[t.performerId];
+    const embedding = e == null ? (t.embedding ?? null) : mergeEmbedding(t.embedding ?? null, e);
+    return { performerId: t.performerId, x: p.x, y: p.y, vx, vy, embedding };
   });
 }
 
@@ -162,9 +235,10 @@ export interface ScanOptions {
 
 /**
  * Sample the whole video and return the held formations (timeline ms).
- * Identity chains: each sample's Hungarian reference is the previous
- * sample's result, so identities follow the dancers through the piece.
- * Null = cancelled. The video's playback position is restored afterwards.
+ * Identities chain through velocity-predicted Hungarian matching; a coarse
+ * step that shows movement triggers a fine (250ms) re-scan of its interval
+ * so identities stay locked through transitions. Null = cancelled. The
+ * video's playback position is restored afterwards.
  */
 export async function scanVideo(
   video: HTMLVideoElement,
@@ -172,30 +246,115 @@ export async function scanVideo(
 ): Promise<HeldFormation[] | null> {
   const stepMs = options.stepMs ?? 1000;
   const originalTime = video.currentTime;
+  const aborted = (): boolean => options.signal?.aborted === true;
+
+  /** Seek + detect + embed; string results are capture errors passed through. */
+  const detectAt = async (
+    videoMs: number,
+  ): Promise<
+    { points: Point2[]; embeddings: (Float32Array | null)[] } | 'no-calibration' | 'no-people'
+  > => {
+    await seekTo(video, videoMs / 1000);
+    const detected = await detectOnstage(
+      video,
+      options.corners,
+      options.stageWidth,
+      options.stageHeight,
+    );
+    if (typeof detected === 'string') return detected;
+    return {
+      points: detected.onstage.map((o) => o.point),
+      embeddings: await embedPeople(
+        video,
+        detected.onstage.map((o) => o.box),
+      ),
+    };
+  };
+
+  /** performerId → this sample's embedding, following the assignment. */
+  const embeddingsByPerformer = (
+    pointIndexByPerformer: Record<string, number>,
+    embeddings: readonly (Float32Array | null)[],
+  ): Record<string, Float32Array | null> =>
+    Object.fromEntries(
+      Object.entries(pointIndexByPerformer).map(([id, j]) => [id, embeddings[j] ?? null]),
+    );
+
   try {
     const durationS = await resolveDuration(video);
     const totalSteps = Math.min(MAX_SAMPLES, Math.floor((durationS * 1000) / stepMs) + 1);
     const samples: ScanSample[] = [];
-    let reference = options.reference;
+    let tracks: TrackedSpot[] = options.reference.map((r) => ({ ...r, vx: 0, vy: 0 }));
+    let previousPositions: Record<string, Point2> | null = null;
+    let previousVideoMs: number | null = null;
     for (let step = 0; step < totalSteps; step++) {
-      if (options.signal?.aborted === true) return null;
+      if (aborted()) return null;
       const videoMs = step * stepMs;
       const timelineMs = videoMs - options.offsetMs;
       if (timelineMs < 0) continue; // inside the lead-in, before timeline 0
-      await seekTo(video, videoMs / 1000);
-      const result = await captureAtTime(
-        video,
-        options.corners,
-        options.stageWidth,
-        options.stageHeight,
-        reference,
-      );
+      const sample = await detectAt(videoMs);
       options.onProgress?.((step + 1) / totalSteps);
-      if (result === 'no-calibration') return null;
-      if (result === 'no-people') continue; // gap: breaks any hold naturally
-      samples.push({ timelineMs, positions: result.positions });
-      // Chain identities through the piece (keeps its full cardinality).
-      reference = advanceReference(reference, result.positions);
+      if (sample === 'no-calibration') return null;
+      if (sample === 'no-people') continue; // gap: breaks any hold naturally
+      const { points, embeddings } = sample;
+
+      const dtMs = previousVideoMs === null ? stepMs : videoMs - previousVideoMs;
+      let assigned = assignPointsToPerformers(
+        points,
+        predictSpots(tracks, dtMs),
+        appearanceCost(tracks, embeddings),
+      );
+      if (
+        previousVideoMs !== null &&
+        previousPositions !== null &&
+        meanDisplacement(previousPositions, assigned.positions) >= HOLD_THRESHOLD_M
+      ) {
+        // Movement: re-chain this interval finely so nobody moves far
+        // enough between samples to be matched to a neighbor.
+        for (
+          let fineMs = previousVideoMs + FINE_STEP_MS;
+          fineMs < videoMs;
+          fineMs += FINE_STEP_MS
+        ) {
+          if (aborted()) return null;
+          const fine = await detectAt(fineMs);
+          if (typeof fine === 'string') continue;
+          const fineAssigned = assignPointsToPerformers(
+            fine.points,
+            predictSpots(tracks, FINE_STEP_MS),
+            appearanceCost(tracks, fine.embeddings),
+          );
+          tracks = advanceTracks(
+            tracks,
+            fineAssigned.positions,
+            FINE_STEP_MS,
+            embeddingsByPerformer(fineAssigned.pointIndexByPerformer, fine.embeddings),
+          );
+        }
+        // Re-assign the coarse frame's ALREADY-detected points against the
+        // refined tracks (no second inference on this frame).
+        assigned = assignPointsToPerformers(
+          points,
+          predictSpots(tracks, FINE_STEP_MS),
+          appearanceCost(tracks, embeddings),
+        );
+        tracks = advanceTracks(
+          tracks,
+          assigned.positions,
+          FINE_STEP_MS,
+          embeddingsByPerformer(assigned.pointIndexByPerformer, embeddings),
+        );
+      } else {
+        tracks = advanceTracks(
+          tracks,
+          assigned.positions,
+          dtMs,
+          embeddingsByPerformer(assigned.pointIndexByPerformer, embeddings),
+        );
+      }
+      samples.push({ timelineMs, positions: assigned.positions });
+      previousPositions = assigned.positions;
+      previousVideoMs = videoMs;
     }
     return segmentHeldFormations(samples);
   } finally {
