@@ -656,6 +656,16 @@ input[type='color'] {
   object-fit: contain;
   background: #000;
 }
+/* Calibration needs room beyond the picture: shrink the video into the
+   center of the frame so pins can be dragged OUTSIDE it (a camera often
+   cuts off a stage corner). The overlay maps coordinates video-relative,
+   so the shrink is safe. */
+.ref-video-frame-calibrating .ref-video-el {
+  flex: none;
+  width: 78%;
+  height: 78%;
+  margin: auto;
+}
 .calibration-overlay {
   position: absolute;
   inset: 0;
@@ -663,6 +673,12 @@ input[type='color'] {
 .calibration-overlay svg {
   display: block;
   touch-action: none;
+  overflow: visible;
+}
+.ref-video-pip:fullscreen,
+.ref-video-splitpane:fullscreen {
+  border-radius: 0;
+  max-width: none;
 }
 .ref-video-note {
   margin: 0;

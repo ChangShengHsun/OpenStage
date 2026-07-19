@@ -379,6 +379,35 @@ test('stage-corner calibration shows a live meter grid and draggable pins', asyn
   expect(Math.abs(after.x - before.x)).toBeGreaterThan(30);
   // Grid still renders after the drag (homography stayed solvable).
   await expect(overlay.locator('line')).toHaveCount(22);
+
+  // Off-frame pins: drag the downstage-left pin far past the picture's left
+  // edge — the stored intrinsic x must go negative (cameras often cut off a
+  // stage corner, so pins must be allowed outside the frame).
+  const dlPin = overlay.locator('circle').nth(3);
+  const dlBox = await dlPin.boundingBox();
+  expect(dlBox).not.toBeNull();
+  if (dlBox === null) return;
+  await page.mouse.move(dlBox.x + dlBox.width / 2, dlBox.y + dlBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(dlBox.x - 250, dlBox.y + dlBox.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const dlX = await page.evaluate(async () => {
+    const refVideoPath = '/src/state/refVideo.ts';
+    const refVideo = (await import(refVideoPath)) as {
+      useRefVideo: { getState: () => { corners: { x: number; y: number }[] | null } };
+    };
+    return refVideo.useRefVideo.getState().corners?.[3]?.x ?? Number.NaN;
+  });
+  expect(dlX).toBeLessThan(0);
+
+  // Full screen: the panel takes the whole screen and comes back.
+  await page.getByRole('button', { name: 'Full screen', exact: false }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.fullscreenElement?.className ?? null))
+    .toContain('ref-video');
+  await page.getByRole('button', { name: 'Exit full screen', exact: false }).click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(overlay).toBeHidden();
 });

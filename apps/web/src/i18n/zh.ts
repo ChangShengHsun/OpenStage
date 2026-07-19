@@ -122,6 +122,8 @@ export const zh: Messages = {
     toSplit: '分割',
     toPip: '浮窗',
     layoutTitle: '在浮動小窗與左右分割畫面之間切換',
+    fullscreen: '全螢幕——校準舞台時特別好用',
+    fullscreenExit: '離開全螢幕（按 Esc 也可以）',
     close: '關閉',
     formatError: '瀏覽器無法解碼這支影片（建議用 MP4/H.264）。',
     offsetLabel: '偏移（秒）',

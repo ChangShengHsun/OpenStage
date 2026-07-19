@@ -122,6 +122,8 @@ export const en = {
     toSplit: 'Split',
     toPip: 'PiP',
     layoutTitle: 'Switch between the floating window and a half-screen split',
+    fullscreen: 'Full screen — handy while calibrating',
+    fullscreenExit: 'Exit full screen (Esc works too)',
     close: 'Close',
     formatError: 'This browser cannot decode the video (try MP4/H.264).',
     offsetLabel: 'Offset (s)',

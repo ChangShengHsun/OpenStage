@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, ReactElement } from 'react';
 import { isPerformerActive } from '@gridstage/shared-types';
 import { registerVideoElement, useRefVideo } from '../state/refVideo';
@@ -49,6 +49,13 @@ export function RefVideo(): ReactElement | null {
     baseBottom: number;
   } | null>(null);
   const resizeRef = useRef<{ startX: number; baseWidth: number } | null>(null);
+  // Native Fullscreen API — gives calibration the whole screen to work in.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const onChange = (): void => setIsFullscreen(document.fullscreenElement === panelRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
 
   if (objectUrl === null) return null;
 
@@ -130,6 +137,21 @@ export function RefVideo(): ReactElement | null {
         title={layout === 'pip' ? t.refVideo.dragHint : undefined}
       >
         <span className="ref-video-name">{fileName}</span>
+        {document.fullscreenEnabled && (
+          <button
+            type="button"
+            className="btn"
+            aria-pressed={isFullscreen}
+            aria-label={isFullscreen ? t.refVideo.fullscreenExit : t.refVideo.fullscreen}
+            title={isFullscreen ? t.refVideo.fullscreenExit : t.refVideo.fullscreen}
+            onClick={() => {
+              if (isFullscreen) void document.exitFullscreen();
+              else void panelRef.current?.requestFullscreen();
+            }}
+          >
+            ⛶
+          </button>
+        )}
         <button
           type="button"
           className="btn"
@@ -147,7 +169,7 @@ export function RefVideo(): ReactElement | null {
           {t.refVideo.formatError}
         </p>
       ) : (
-        <div className="ref-video-frame">
+        <div className={`ref-video-frame${calibrating ? ' ref-video-frame-calibrating' : ''}`}>
           <video
             ref={(el) => {
               videoRef.current = el;

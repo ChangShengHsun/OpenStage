@@ -26,8 +26,10 @@ export function CalibrationOverlay({
   const stageHeight = useEditor((s) => s.performance.stageHeight);
   const overlayRef = useRef<HTMLDivElement>(null);
   const dragIndexRef = useRef<number | null>(null);
-  // The video's displayed content box (object-fit: contain letterboxing)
-  // for mapping intrinsic pixels <-> overlay pixels.
+  // The video's displayed content box (object-fit: contain letterboxing),
+  // in OVERLAY coordinates — while calibrating the video is shrunk and
+  // centered inside the frame, so the overlay extends beyond the picture
+  // and pins may sit outside it (off-frame stage corners).
   const [fit, setFit] = useState({ scale: 1, offsetX: 0, offsetY: 0, w: 0, h: 0 });
 
   useEffect(() => {
@@ -40,17 +42,20 @@ export function CalibrationOverlay({
       const cw = video.clientWidth;
       const ch = video.clientHeight;
       const scale = Math.min(cw / vw, ch / vh);
+      // offsetLeft/Top are relative to .ref-video-frame, which is also the
+      // overlay's origin (both are positioned by it).
       setFit({
         scale,
-        offsetX: (cw - vw * scale) / 2,
-        offsetY: (ch - vh * scale) / 2,
-        w: cw,
-        h: ch,
+        offsetX: video.offsetLeft + (cw - vw * scale) / 2,
+        offsetY: video.offsetTop + (ch - vh * scale) / 2,
+        w: overlay.clientWidth,
+        h: overlay.clientHeight,
       });
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(video);
+    observer.observe(overlay);
     video.addEventListener('loadedmetadata', measure);
     return () => {
       observer.disconnect();
@@ -111,15 +116,11 @@ export function CalibrationOverlay({
     const index = dragIndexRef.current;
     if (index === null) return;
     const rect = e.currentTarget.getBoundingClientRect();
+    // Deliberately unclamped: a camera often cuts off a stage corner, so a
+    // pin must be allowed to sit outside the picture — the homography is
+    // just as valid there.
     const intrinsic = toIntrinsic({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    const next = pins.map((p, i) =>
-      i === index
-        ? {
-            x: Math.min(vw, Math.max(0, intrinsic.x)),
-            y: Math.min(vh, Math.max(0, intrinsic.y)),
-          }
-        : p,
-    );
+    const next = pins.map((p, i) => (i === index ? intrinsic : p));
     setCorners(next);
   };
   const onPointerUp = (): void => {
