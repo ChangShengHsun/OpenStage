@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/shared-types",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "private": true,
   "description": "Domain types shared by GridStage web, api and collab-server",
   "license": "MIT",

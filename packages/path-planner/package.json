@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/path-planner",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "private": true,
   "description": "Transition planning: minimal-travel assignment (Hungarian) and path collision detection",
   "license": "MIT",

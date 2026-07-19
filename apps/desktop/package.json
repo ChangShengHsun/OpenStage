@@ -1,6 +1,6 @@
 {
   "name": "@gridstage/desktop",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "private": true,
   "description": "GridStage desktop shell (Electron) — wraps the web app into an installable app",
   "license": "MIT",

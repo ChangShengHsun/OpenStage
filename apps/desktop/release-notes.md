@@ -1,3 +1,20 @@
+# GridStage 0.8.6
+
+## The scan stops mixing dancers up
+
+Whole-video scan identity tracking rebuilt around three cues instead of
+one — the "formations were right but the transitions were wrong" bug:
+
+- **Velocity**: matching now runs against where each dancer is HEADED,
+  so two dancers crossing paths keep their own identities.
+- **Fine sampling through transitions**: when a second shows movement it
+  is re-scanned at 250ms — nobody moves far enough to be mistaken for a
+  neighbor. Scans of transition-heavy videos take somewhat longer.
+- **Appearance (Re-ID)**: a small model (osnet_ain_x1_0, +10MB) embeds
+  what each dancer LOOKS like; different outfits can no longer trade
+  identities even when their paths do. Identical team costumes fall back
+  to position + velocity — that limit is physics, not a bug.
+
 # GridStage 0.8.5
 
 ## Calibration, unboxed
