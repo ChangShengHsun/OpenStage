@@ -1019,6 +1019,15 @@ label {
     width: 130px;
   }
 
+  /* The timeline panel is the one grid item that is NOT a scroll container,
+     so its automatic minimum size (= the no-wrap toolbar row, ~890px) would
+     stretch the single column past the phone screen and push the stage and
+     topbar off-screen. min-width:0 lets the column stay at viewport width;
+     the toolbar and body already scroll horizontally on their own. */
+  .timeline-panel {
+    min-width: 0;
+  }
+
   /* Off-canvas drawers (position:fixed opts them out of the grid). */
   .app-narrow .cast-panel,
   .app-narrow .props-panel {
