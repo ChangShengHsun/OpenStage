@@ -5,19 +5,20 @@ cheer coaches, stage managers, and dance studios.
 
 <!--
   MEDIA — hosted on GitHub's CDN, NOT committed to the repo.
-  To get each URL: open a new draft Issue on this repo, drag the file into the
-  comment box, wait for the upload, copy the URL GitHub inserts, then paste it
-  below. Discard the issue afterwards — the uploaded file stays live.
+  The GIF and promo video below are commented out until their CDN URLs exist.
+  To fill each in: open a new draft Issue on this repo, drag the file into the
+  comment box, wait for the upload, copy the URL GitHub inserts, paste it into
+  the matching line below, and uncomment that line. Discard the issue
+  afterwards — the uploaded file stays live. Files: C:\Users\ivan_chang\my-video\out\
+
+  readme-1280.gif (1.7 MB):
+    ![GridStage in action](PASTE_GIF_URL_HERE)
+
+  promo.mp4 (15.8 MB) — paste the URL on its OWN line, no ![]() wrapper:
+    PASTE_PROMO_MP4_URL_HERE
 -->
 
-<!-- readme-1280.gif (1.7 MB) — drag into an issue, replace the URL below -->
-![GridStage in action](REPLACE_WITH_GIF_URL)
-
-<!-- promo.mp4 (15.8 MB) — drag into an issue; GitHub renders it as a player.
-     Paste the URL on its OWN line (no ![]() wrapper) for it to embed. -->
-REPLACE_WITH_PROMO_MP4_URL
-
-**▶ Full walkthrough:** [watch the demo on YouTube](REPLACE_WITH_YOUTUBE_URL)
+**▶ Full walkthrough:** [watch the demo on YouTube](https://youtu.be/pYeI-zq6FSQ)
 
 Plan formations on a top-down 2D stage, sync them to music, preview transitions
 in 2D and 3D, capture formations straight from a rehearsal video with on-device
